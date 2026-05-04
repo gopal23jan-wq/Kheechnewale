@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kheechnewale" />
+<meta name="theme-color" content="#1a1a2e" />
+<title>Kheechnewale</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#1a1a2e; --surface:#16213e; --card:#0f3460;
+    --accent:#e94560; --gold:#f5a623; --text:#eaeaea;
+    --muted:#8892a4; --success:#2ecc71; --info:#4fc3f7;
+    --radius:16px; --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
+  body{display:flex;flex-direction:column;}
+  .screen{display:none;flex-direction:column;height:100%;overflow:hidden;}
+  .screen.active{display:flex;}
+  .header{padding:52px 20px 16px;flex-shrink:0;}
+  .header h1{font-family:'Playfair Display',serif;font-size:28px;letter-spacing:-0.5px;}
+  .header p{font-size:13px;color:var(--muted);margin-top:3px;}
+  .scroll{flex:1;overflow-y:auto;padding:0 16px 120px;-webkit-overflow-scrolling:touch;}
+  .sec{background:var(--surface);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+  .sec-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
+  .name-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .name-wrap{display:flex;flex-direction:column;gap:4px;}
+  .name-wrap label{font-size:11px;color:var(--muted);}
+  .name-wrap input{background:var(--card);border:none;border-radius:10px;padding:10px 12px;color:var(--text);font-size:15px;font-family:'DM Sans',sans-serif;outline:none;width:100%;}
+  .name-wrap input::placeholder{color:var(--muted);}
+  .btn{display:block;width:100%;padding:15px;border-radius:var(--radius);border:none;font-size:16px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;transition:transform 0.1s,opacity 0.1s;}
+  .btn:active{transform:scale(0.97);opacity:0.85;}
+  .btn-accent{background:var(--accent);color:#fff;}
+  .bottom-bar{position:fixed;bottom:0;left:0;right:0;padding:12px 16px calc(12px + var(--safe-bottom));background:var(--bg);border-top:1px solid rgba(255,255,255,0.07);}
+  .top-bar{display:flex;justify-content:space-between;align-items:center;padding:52px 20px 0;flex-shrink:0;}
+  .top-bar h1{font-family:'Playfair Display',serif;font-size:24px;}
+  .top-bar button{background:none;border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif;padding:6px 12px;cursor:pointer;}
+  .winner-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .winner-btn{background:var(--card);border:2px solid transparent;border-radius:12px;padding:14px 10px;color:var(--text);font-size:14px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;transition:all 0.15s;line-height:1.5;}
+  .winner-btn.selected{border-color:var(--success);background:rgba(46,204,113,0.15);color:var(--success);}
+  .winner-btn:active{transform:scale(0.96);}
+  .streak-pip{display:inline-block;width:6px;height:6px;background:var(--gold);border-radius:50%;margin-left:2px;vertical-align:middle;}
+  .game-badge{display:inline-block;background:var(--card);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--muted);margin-bottom:12px;}
+  .pblock{background:var(--card);border-radius:12px;padding:14px;margin-bottom:10px;}
+  .pblock-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .pblock-name{font-size:15px;font-weight:500;}
+  .badge{font-size:11px;padding:3px 10px;border-radius:20px;}
+  .badge-declared{background:rgba(46,204,113,0.2);color:var(--success);}
+  .sub-title{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:8px;font-weight:500;}
+  .pts-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .pts-row label{font-size:13px;color:var(--muted);flex:1;}
+  .pts-input{background:var(--surface);border:none;border-radius:8px;padding:8px 12px;color:var(--text);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;width:72px;text-align:right;}
+  .divider{height:1px;background:rgba(255,255,255,0.07);margin:10px 0;}
+  .pt-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .pt-label{font-size:13px;color:var(--text);}
+  .pt-sub{font-size:11px;color:var(--muted);}
+  .stepper{display:flex;align-items:center;background:var(--surface);border-radius:10px;overflow:hidden;}
+  .stepper button{background:none;border:none;color:var(--text);font-size:20px;width:36px;height:36px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;}
+  .stepper button:active{background:rgba(255,255,255,0.08);}
+  .stepper span{font-size:16px;font-weight:500;min-width:28px;text-align:center;}
+  .pt-pts{font-size:12px;color:var(--gold);font-weight:500;margin-top:2px;}
+  .combo-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;}
+  .combo-chip{display:flex;align-items:center;gap:7px;background:var(--surface);border-radius:8px;padding:8px 10px;cursor:pointer;}
+  .combo-chip input[type=checkbox]{width:16px;height:16px;accent-color:var(--gold);flex-shrink:0;}
+  .combo-chip span{font-size:12px;}
+  .combo-chip.checked{background:rgba(245,166,35,0.15);}
+  .tally-badge{font-size:12px;font-weight:500;color:var(--gold);display:none;margin-top:6px;}
+  .streak-note{margin-top:10px;font-size:12px;padding:7px 10px;border-radius:8px;}
+  .streak-note.bonus{background:rgba(245,166,35,0.2);color:var(--gold);}
+  .streak-note.building{color:var(--muted);}
+  .pot-summary{background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:10px 14px;margin-top:4px;font-size:13px;color:var(--gold);display:none;}
+  .lb-tabs{display:flex;gap:6px;margin-bottom:14px;}
+  .lb-tab{flex:1;text-align:center;padding:7px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;background:var(--card);color:var(--muted);}
+  .lb-tab.active{background:var(--accent);color:#fff;}
+  .lb-view{display:none;}
+  .lb-view.active{display:block;}
+  .lb-hdr{display:flex;padding:0 0 6px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:2px;}
+  .lb-hdr span{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);}
+  .lb-row{display:flex;align-items:center;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.06);gap:6px;}
+  .lb-row:last-child{border-bottom:none;}
+  .lb-rank{width:24px;font-size:13px;color:var(--muted);flex-shrink:0;}
+  .lb-rank.top{color:var(--gold);font-weight:500;}
+  .lb-name{flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lb-name.top{font-weight:500;color:var(--gold);}
+  .lb-streak{font-size:11px;color:var(--gold);background:rgba(245,166,35,0.15);border-radius:20px;padding:2px 8px;white-space:nowrap;flex-shrink:0;}
+  .lb-col{font-size:14px;font-weight:500;flex-shrink:0;width:48px;text-align:right;}
+  .lb-col.top{color:var(--gold);}
+  .lb-col.pos{color:var(--success);}
+  .lb-col.neg{color:var(--accent);}
+  .lb-col.muted{color:var(--muted);font-weight:400;font-size:12px;}
+  .hist-item{padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .hist-item:last-child{border-bottom:none;}
+  .hist-meta{font-size:12px;color:var(--muted);margin-bottom:3px;}
+  .hist-winner{font-size:14px;font-weight:500;color:var(--success);margin-bottom:4px;}
+  .hist-tag{font-size:10px;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);padding:1px 7px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);display:inline-block;margin-bottom:3px;}
+  .hist-detail{font-size:12px;color:var(--muted);line-height:1.7;}
+  .tab-bar{display:flex;background:var(--surface);border-top:1px solid rgba(255,255,255,0.07);flex-shrink:0;padding-bottom:var(--safe-bottom);}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0 6px;cursor:pointer;border:none;background:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:10px;gap:3px;}
+  .tab.active{color:var(--accent);}
+  .tab svg{width:22px;height:22px;}
+  .tab-content{display:none;flex:1;overflow-y:auto;padding:16px 16px 20px;-webkit-overflow-scrolling:touch;}
+  .tab-content.active{display:block;}
+  .sides-summary{background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.25);border-radius:10px;padding:12px 14px;margin-top:10px;display:none;}
+  .sides-summary-title{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:8px;font-weight:500;}
+  .side-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .side-row:last-child{border-bottom:none;}
+  .side-row-left{display:flex;flex-direction:column;gap:2px;}
+  .side-combo-name{font-size:13px;color:var(--text);font-weight:500;}
+  .side-combo-players{font-size:11px;color:var(--muted);}
+  .side-combo-pts{font-size:13px;color:var(--gold);font-weight:500;white-space:nowrap;}
+  .streak-banner{border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:none;background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.4);color:var(--gold);}
+  .ref-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px;}
+  .ref-row:last-child{border-bottom:none;}
+  .ref-row span:last-child{color:var(--gold);font-weight:500;}
+  .note{font-size:11px;color:var(--muted);margin-top:8px;}
+  .empty{text-align:center;color:var(--muted);font-size:14px;padding:40px 20px;}
+  .col-grn{color:var(--success);}
+  .col-red{color:var(--accent);}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div class="screen active" id="screen-setup">
+  <div class="header">
+    <h1>&#9824; Kheechnewale</h1>
+    <p>Enter player names to start a session</p>
+  </div>
+  <div class="scroll">
+    <div class="sec">
+      <div class="sec-title">Players</div>
+      <div class="name-grid" id="name-grid"></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Scoring tracks</div>
+      <div class="ref-row"><span>Gameplay</span><span style="color:var(--info)">Card pts — winner +, losers −</span></div>
+      <div class="ref-row"><span>Side</span><span style="color:var(--gold)">Own combo pts — positive earners win</span></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Combination points (Side)</div>
+      <div class="ref-row"><span>1 combo</span><span>2 pts</span></div>
+      <div class="ref-row"><span>2 combos</span><span>5 pts (+1 bonus)</span></div>
+      <div class="ref-row"><span>3 combos</span><span>7 pts (+1 bonus)</span></div>
+      <p class="note">Zero-sum: earn your own combo pts, but owe others theirs. Positives and negatives balance out.</p>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Paplu / Taplu (Side)</div>
+      <div class="ref-row"><span>1 Paplu or Taplu</span><span>1 pt</span></div>
+      <div class="ref-row"><span>2 of same</span><span>3 pts (1+1+1 bonus)</span></div>
+      <div class="ref-row"><span>3 of same (= Tanala)</span><span>5 pts + 2 pt Tanala</span></div>
+      <p class="note">Paplu = one above joker · Taplu = one below joker (same suit).</p>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Win streak bonus (Side)</div>
+      <div class="ref-row"><span>3 wins in a row</span><span>2 pts</span></div>
+      <div class="ref-row"><span>6 wins in a row</span><span>3 pts</span></div>
+      <div class="ref-row"><span>9 wins in a row</span><span>4 pts</span></div>
+      <p class="note">Streak resets after each bonus. Bonus added to winner's Side score.</p>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <button class="btn btn-accent" onclick="startSession()">Start session</button>
+  </div>
+</div>
+
+<!-- DECLARE -->
+<div class="screen" id="screen-declare">
+  <div class="top-bar"><h1>&#9824; Kheechnewale</h1><button onclick="resetAll()">New session</button></div>
+  <div class="scroll" style="padding-top:16px;">
+    <div class="game-badge" id="declare-badge">Game 1</div>
+    <div class="sec">
+      <div class="sec-title">Who declared this hand?</div>
+      <div class="winner-grid" id="winner-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ENTRY -->
+<div class="screen" id="screen-entry">
+  <div class="top-bar" style="padding-bottom:12px;">
+    <h1 style="font-size:16px;line-height:1.3;" id="entry-title">Enter points</h1>
+    <button onclick="cancelEntry()">Cancel</button>
+  </div>
+  <div class="scroll" id="entry-scroll" style="padding-top:12px;">
+    <div id="player-blocks"></div>
+    <div class="pot-summary" id="pot-summary"></div>
+    <div class="sides-summary" id="sides-summary" style="margin-top:12px;"></div>
+  </div>
+  <div class="bottom-bar">
+    <button class="btn btn-accent" onclick="recordGame()">Record game &#8594;</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="screen" id="screen-main">
+  <div class="top-bar"><h1>&#9824; Kheechnewale</h1><button onclick="resetAll()">New session</button></div>
+  <div style="padding:12px 16px 0;flex-shrink:0;">
+    <div class="game-badge" id="main-badge">Game 1</div>
+  </div>
+  <div class="tab-content active" id="tab-scores">
+    <div class="streak-banner" id="streak-banner"></div>
+    <div class="lb-tabs">
+      <button class="lb-tab active" onclick="switchLbTab('gp',this)">Gameplay</button>
+      <button class="lb-tab" onclick="switchLbTab('side',this)">Side</button>
+      <button class="lb-tab" onclick="switchLbTab('total',this)">Combined</button>
+    </div>
+    <div class="lb-view active" id="lb-gp"></div>
+    <div class="lb-view" id="lb-side"></div>
+    <div class="lb-view" id="lb-total"></div>
+  </div>
+  <div class="tab-content" id="tab-history">
+    <div class="sec-title">Game history</div>
+    <div id="history"></div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('scores',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Standings
+    </button>
+    <button class="tab" onclick="switchTab('history',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      History
+    </button>
+    <button class="tab" onclick="showDeclareScreen()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      New game
+    </button>
+  </div>
+</div>
+
+<script>
+const COMBOS=[
+  {id:'tanala',label:'Tanala'},
+  {id:'fourcarder',label:'Four-Carder'},
+  {id:'fourkind',label:'Four-of-a-Kind'},
+  {id:'toplow',label:'Top & Low'},
+  {id:'tworuns',label:'Two-Runs'},
+  {id:'trios',label:'3-Trios'},
+];
+
+// Paplu/Taplu: 1→1, 2→3, 3→5
+function ptScore(n){if(n===0)return 0;if(n===1)return 1;if(n===2)return 3;return 5;}
+// Combos: n→ n*2 + (n>=2?1:0)
+function comboScore(n){return n===0?0:n*2+(n>=2?1:0);}
+// Streak bonus by level
+function streakBonus(level){return level+1;}
+
+// Gameplay: losers get −pts, winner gets +sum. Higher = better.
+// Side: each player's net = own side pts − others' side pts. Higher = better.
+
+let players=[],gpTotals={},sideTotals={},gameHistory=[],gameCount=1,selectedWinner=null;
+let streaks={},streakLevels={};
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function switchTab(name,el){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+}
+function switchLbTab(name,el){
+  document.querySelectorAll('.lb-view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.lb-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('lb-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+(function(){
+  const g=document.getElementById('name-grid');g.innerHTML='';
+  for(let i=1;i<=6;i++)
+    g.innerHTML+=`<div class="name-wrap"><label>Player ${i}</label><input type="text" placeholder="Name" id="pname${i}" autocomplete="off"/></div>`;
+})();
+
+function startSession(){
+  players=[];
+  for(let i=1;i<=6;i++){const v=(document.getElementById('pname'+i).value||'').trim();if(v)players.push(v);}
+  if(players.length<2){alert('Enter at least 2 player names.');return;}
+  gpTotals={};sideTotals={};streaks={};streakLevels={};
+  players.forEach(p=>{gpTotals[p]=0;sideTotals[p]=0;streaks[p]=0;streakLevels[p]=0;});
+  gameHistory=[];gameCount=1;selectedWinner=null;
+  showDeclareScreen();
+}
+
+function showDeclareScreen(){
+  selectedWinner=null;
+  document.getElementById('declare-badge').textContent='Game '+gameCount;
+  document.getElementById('winner-grid').innerHTML=players.map(p=>{
+    const s=streaks[p];
+    const pips=s>0?'<br>'+Array.from({length:s},()=>'<span class="streak-pip"></span>').join(''):'';
+    return `<button class="winner-btn" onclick="selectWinner('${p}',this)">${p}${pips}</button>`;
+  }).join('');
+  showScreen('screen-declare');
+}
+
+function selectWinner(name,btn){
+  selectedWinner=name;
+  document.querySelectorAll('.winner-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  setTimeout(()=>showEntryScreen(),250);
+}
+
+function showEntryScreen(){
+  document.getElementById('entry-title').textContent='Game '+gameCount+' — '+selectedWinner+' declared';
+  renderBlocks();
+  document.getElementById('pot-summary').style.display='none';
+  const ss=document.getElementById('sides-summary');if(ss){ss.style.display='none';ss.innerHTML='';}
+  document.getElementById('entry-scroll').scrollTop=0;
+  showScreen('screen-entry');
+}
+
+function getPapVal(p){return parseInt(document.getElementById('pap_'+p+'_disp')?.dataset.val||'0');}
+function getTapVal(p){return parseInt(document.getElementById('tap_'+p+'_disp')?.dataset.val||'0');}
+function getComboCount(p){return COMBOS.filter(c=>document.getElementById('combo_'+p+'_'+c.id)?.checked).length;}
+function getSideRaw(p){return comboScore(getComboCount(p))+ptScore(getPapVal(p))+ptScore(getTapVal(p));}
+
+function renderBlocks(){
+  document.getElementById('player-blocks').innerHTML=players.map(p=>{
+    const isW=p===selectedWinner;
+
+    const gpSection=isW
+      ?`<div style="font-size:12px;color:var(--success);margin-bottom:10px;padding:7px 10px;background:rgba(46,204,113,0.08);border-radius:8px;">&#8593; Gains the sum of all other players' card points</div>`
+      :`<div>
+          <div class="sub-title">Gameplay — card points in hand</div>
+          <div class="pts-row">
+            <label>Incomplete suits value</label>
+            <input class="pts-input" type="number" min="0" value="" placeholder="0" id="card_${p}" inputmode="numeric" oninput="updatePot()"/>
+          </div>
+        </div>
+        <div class="divider"></div>`;
+
+    const ptSection=`
+      <div class="sub-title" style="margin-top:4px;">Paplu &amp; Taplu</div>
+      <div class="pt-row">
+        <div><div class="pt-label">Paplu</div><div class="pt-sub">1 above joker (same suit)</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+          <div class="stepper">
+            <button type="button" onclick="stepPT('pap_${p}',-1)">−</button>
+            <span id="pap_${p}_disp" data-val="0">0</span>
+            <button type="button" onclick="stepPT('pap_${p}',1)">+</button>
+          </div>
+          <div class="pt-pts" id="pap_${p}_pts"></div>
+        </div>
+      </div>
+      <div class="pt-row">
+        <div><div class="pt-label">Taplu</div><div class="pt-sub">1 below joker (same suit)</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+          <div class="stepper">
+            <button type="button" onclick="stepPT('tap_${p}',-1)">−</button>
+            <span id="tap_${p}_disp" data-val="0">0</span>
+            <button type="button" onclick="stepPT('tap_${p}',1)">+</button>
+          </div>
+          <div class="pt-pts" id="tap_${p}_pts"></div>
+        </div>
+      </div>`;
+
+    const chips=COMBOS.map(c=>
+      `<label class="combo-chip" id="chip_${p}_${c.id}">
+        <input type="checkbox" id="combo_${p}_${c.id}" onchange="updateTally('${p}')"/>
+        <span>${c.label}</span>
+      </label>`).join('');
+
+    let streakNote='';
+    if(isW){
+      const ns=streaks[p]+1,rem=3-(ns%3);
+      if(ns%3===0){
+        const nl=streakLevels[p]+1;
+        streakNote=`<div class="streak-note bonus">&#9733; ${ns} wins in a row — +${streakBonus(nl)} pt streak bonus!</div>`;
+      } else {
+        streakNote=`<div class="streak-note building">${ns} win${ns>1?'s':''} in a row — ${rem} more for streak bonus</div>`;
+      }
+    }
+
+    return `<div class="pblock">
+      <div class="pblock-hdr">
+        <span class="pblock-name">${p}</span>
+        ${isW?'<span class="badge badge-declared">Declared</span>':''}
+      </div>
+      ${gpSection}
+      <div class="sub-title">Side — combinations</div>
+      <div class="combo-grid">${chips}</div>
+      <div class="tally-badge" id="tally_${p}"></div>
+      <div class="divider"></div>
+      ${ptSection}
+      ${streakNote}
+    </div>`;
+  }).join('');
+  updatePot();
+}
+
+function stepPT(key,dir){
+  const dispEl=document.getElementById(key+'_disp');
+  if(!dispEl)return;
+  let v=parseInt(dispEl.dataset.val||'0')+dir;
+  if(v<0)v=0;if(v>3)v=3;
+  dispEl.dataset.val=v;dispEl.textContent=v;
+  const pts=ptScore(v);
+  const ptsEl=document.getElementById(key+'_pts');
+  if(ptsEl)ptsEl.textContent=pts>0?pts+' pts':'';
+  // Auto-tick Tanala if pap=3 or tap=3
+  const p=key.replace(/^(pap|tap)_/,'');
+  const papV=getPapVal(p),tapV=getTapVal(p);
+  const tanalaEl=document.getElementById('combo_'+p+'_tanala');
+  const chipEl=document.getElementById('chip_'+p+'_tanala');
+  if(tanalaEl){
+    const should=papV===3||tapV===3;
+    tanalaEl.checked=should;
+    if(chipEl)chipEl.classList.toggle('checked',should);
+    updateTally(p);
+  }
+  updatePot();
+}
+
+function updateTally(p){
+  const count=getComboCount(p);
+  COMBOS.forEach(c=>{
+    const chip=document.getElementById('chip_'+p+'_'+c.id);
+    const cb=document.getElementById('combo_'+p+'_'+c.id);
+    if(chip&&cb)chip.classList.toggle('checked',cb.checked);
+  });
+  const tally=document.getElementById('tally_'+p);
+  if(tally){
+    if(count===0){tally.style.display='none';}
+    else{
+      const pts=comboScore(count);
+      tally.style.display='block';
+      tally.textContent=count===1?`1 combo — ${pts} pts`:`${count} combos — ${pts} pts (incl. +1 bonus)`;
+    }
+  }
+  updatePot();
+}
+
+function updatePot(){
+  let sideTotal=players.reduce((s,p)=>s+getSideRaw(p),0);
+  const ns=streaks[selectedWinner]+1;
+  if(ns%3===0)sideTotal+=streakBonus(streakLevels[selectedWinner]+1);
+  const el=document.getElementById('pot-summary');
+  if(sideTotal>0){el.style.display='block';el.textContent='Total Side pts from shared pot this hand: '+sideTotal+' pts';}
+  else el.style.display='none';
+
+  // Build live Sides summary grouped by combination
+  const summaryEl=document.getElementById('sides-summary');
+  if(!summaryEl)return;
+  // Gather all ticked combos across all players
+  const comboMap={}; // comboId -> {label, players:[], pts}
+  players.forEach(p=>{
+    COMBOS.forEach(c=>{
+      const cb=document.getElementById('combo_'+p+'_'+c.id);
+      if(cb&&cb.checked){
+        if(!comboMap[c.id])comboMap[c.id]={label:c.label,holders:[],pts:2};
+        comboMap[c.id].holders.push(p);
+      }
+    });
+    // Paplu
+    const papV=getPapVal(p);
+    if(papV>0){
+      const k='paplu_'+p;
+      comboMap[k]={label:'Paplu ×'+papV,holders:[p],pts:ptScore(papV)};
+    }
+    // Taplu
+    const tapV=getTapVal(p);
+    if(tapV>0){
+      const k='taplu_'+p;
+      comboMap[k]={label:'Taplu ×'+tapV,holders:[p],pts:ptScore(tapV)};
+    }
+  });
+  // Streak bonus
+  let streakRow='';
+  if(ns%3===0){
+    const bonus=streakBonus(streakLevels[selectedWinner]+1);
+    streakRow=`<div class="side-row">
+      <div class="side-row-left"><div class="side-combo-name">&#9733; Win Streak (${ns} in a row)</div><div class="side-combo-players">${selectedWinner}</div></div>
+      <div class="side-combo-pts">+${bonus} pts</div>
+    </div>`;
+  }
+  const entries=Object.values(comboMap);
+  if(entries.length===0&&!streakRow){summaryEl.style.display='none';return;}
+  summaryEl.style.display='block';
+  summaryEl.innerHTML='<div class="sides-summary-title">Sides this hand</div>'+
+    entries.map(e=>`<div class="side-row">
+      <div class="side-row-left">
+        <div class="side-combo-name">${e.label}</div>
+        <div class="side-combo-players">${e.holders.join(', ')}</div>
+      </div>
+      <div class="side-combo-pts">${e.pts} pts each</div>
+    </div>`).join('')+streakRow;
+}
+
+function fmtGP(v){
+  // colour helper for display
+  if(v>0)return '<span class="col-grn">+'+v+'</span>';
+  if(v<0)return '<span class="col-red">'+v+'</span>';
+  return '0';
+}
+function fmtSide(v){
+  if(v>0)return '<span class="col-grn">+'+v+'</span>';
+  if(v<0)return '<span class="col-red">'+v+'</span>';
+  return '0';
+}
+
+function recordGame(){
+  const res={
+    game:gameCount,winner:selectedWinner,
+    gpScores:{},   // per-player GP delta this game
+    sideScores:{}, // per-player Side net this game
+    comboDetails:{},ptDetails:{},
+    streakBonus:0,streakAt:0
+  };
+
+  // ── Gameplay ──────────────────────────────────────────────
+  // Each loser enters card pts → those are NEGATIVE for the loser.
+  // Winner gains the SUM as POSITIVE.
+  let gpWinnerGain=0;
+  players.forEach(p=>{
+    if(p!==selectedWinner){
+      const v=parseInt(document.getElementById('card_'+p)?.value)||0;
+      res.gpScores[p]=-v;      // loser loses v points (negative)
+      gpTotals[p]-=v;
+      gpWinnerGain+=v;
+    }
+  });
+  res.gpScores[selectedWinner]=+gpWinnerGain;  // winner gains positive sum
+  gpTotals[selectedWinner]+=gpWinnerGain;
+
+  // ── Side ─────────────────────────────────────────────────────────
+  // Zero-sum: net[p] = raw[p]*n - totalRaw
+  // Each player pays every other player their earned pts, receives their own from everyone.
+  // Integers, always sums to zero across all players.
+  const rawSide={};
+  players.forEach(p=>rawSide[p]=getSideRaw(p));
+  const totalSideRaw=players.reduce((s,p)=>s+rawSide[p],0);
+  const n=players.length;
+  players.forEach(p=>{
+    const net=rawSide[p]*n - totalSideRaw;
+    res.sideScores[p]=net;
+    sideTotals[p]+=net;
+    const papV=getPapVal(p),tapV=getTapVal(p);
+    res.ptDetails[p]={pap:papV,tap:tapV};
+    const heldCombos=COMBOS.filter(c=>getCheck('combo_'+p+'_'+c.id)).map(c=>c.label);
+    res.comboDetails[p]={count:getComboCount(p),pts:comboScore(getComboCount(p)),raw:rawSide[p],held:heldCombos};
+  });
+
+  // ── Streaks ───────────────────────────────────────────────
+  players.forEach(p=>{if(p!==selectedWinner){streaks[p]=0;streakLevels[p]=0;}});
+  streaks[selectedWinner]+=1;
+  if(streaks[selectedWinner]%3===0){
+    streakLevels[selectedWinner]+=1;
+    const bonus=streakBonus(streakLevels[selectedWinner]);
+    res.streakBonus=bonus;
+    res.streakAt=streaks[selectedWinner];
+    sideTotals[selectedWinner]+=bonus;   // streak bonus is a positive gain on Side
+    streaks[selectedWinner]=0;
+    streakLevels[selectedWinner]=0;
+  }
+
+  gameHistory.unshift(res);
+  gameCount++;
+  document.getElementById('main-badge').textContent='Game '+gameCount;
+  renderLeaderboard(res);
+  renderHistory();
+  showScreen('screen-main');
+  switchTab('scores',document.querySelector('.tab'));
+}
+
+function cancelEntry(){
+  if(gameHistory.length===0)showScreen('screen-declare');
+  else showScreen('screen-main');
+}
+
+function colClass(v){return v>0?' pos':v<0?' neg':'';}
+
+function renderLeaderboard(last){
+  const banner=document.getElementById('streak-banner');
+  if(last&&last.streakBonus>0){
+    banner.style.display='block';
+    banner.innerHTML=`&#9733; ${last.winner} hit ${last.streakAt} wins in a row &mdash; +${last.streakBonus} pt streak bonus!`;
+  } else if(last) banner.style.display='none';
+
+  // Gameplay — higher is better
+  const gpSorted=[...players].sort((a,b)=>gpTotals[b]-gpTotals[a]);
+  document.getElementById('lb-gp').innerHTML=
+    `<div class="lb-hdr"><span style="flex:1;padding-left:30px;">Player</span><span>GP pts</span></div>`+
+    gpSorted.map((p,i)=>{
+      const top=i===0;
+      const s=streaks[p];
+      const strk=s>0?`<span class="lb-streak">&#128293; ${s}</span>`:'';
+      const v=gpTotals[p];
+      return `<div class="lb-row">
+        <div class="lb-rank${top?' top':''}">${i+1}</div>
+        <div class="lb-name${top?' top':''}">${p}</div>${strk}
+        <div class="lb-col${top?' top':''}${colClass(v)}">${v>0?'+'+v:v}</div>
+      </div>`;
+    }).join('');
+
+  // Side — higher is better
+  const sideSorted=[...players].sort((a,b)=>sideTotals[b]-sideTotals[a]);
+  document.getElementById('lb-side').innerHTML=
+    `<div class="lb-hdr"><span style="flex:1;padding-left:30px;">Player</span><span>Side pts</span></div>`+
+    sideSorted.map((p,i)=>{
+      const top=i===0;
+      const v=sideTotals[p];
+      return `<div class="lb-row">
+        <div class="lb-rank${top?' top':''}">${i+1}</div>
+        <div class="lb-name${top?' top':''}">${p}</div>
+        <div class="lb-col${top?' top':''}${colClass(v)}">${v>0?'+'+v:v}</div>
+      </div>`;
+    }).join('');
+
+  // Combined — higher is better
+  const combined={};players.forEach(p=>combined[p]=gpTotals[p]+sideTotals[p]);
+  const combSorted=[...players].sort((a,b)=>combined[b]-combined[a]);
+  document.getElementById('lb-total').innerHTML=
+    `<div class="lb-hdr"><span style="flex:1;padding-left:30px;">Player</span><span style="width:44px;text-align:right;">GP</span><span style="width:44px;text-align:right;margin-left:4px;">Side</span><span style="width:52px;text-align:right;margin-left:4px;">Total</span></div>`+
+    combSorted.map((p,i)=>{
+      const top=i===0;
+      const gv=gpTotals[p],sv=sideTotals[p],tv=combined[p];
+      return `<div class="lb-row">
+        <div class="lb-rank${top?' top':''}">${i+1}</div>
+        <div class="lb-name${top?' top':''}">${p}</div>
+        <div class="lb-col muted" style="width:44px;">${gv>0?'+'+gv:gv}</div>
+        <div class="lb-col muted" style="width:44px;margin-left:4px;">${sv>0?'+'+sv:sv}</div>
+        <div class="lb-col${top?' top':''}${colClass(tv)}" style="width:52px;margin-left:4px;">${tv>0?'+'+tv:tv}</div>
+      </div>`;
+    }).join('');
+}
+
+function renderHistory(){
+  const wrap=document.getElementById('history');
+  if(!gameHistory.length){wrap.innerHTML='<div class="empty">No games yet</div>';return;}
+  wrap.innerHTML=gameHistory.map(g=>{
+    // Gameplay lines
+    const losers=players.filter(p=>p!==g.winner);
+    const gpLosers=losers.map(p=>`${p}: ${g.gpScores[p]}`).join(' · ');
+    const gpWinner=`${g.winner}: +${g.gpScores[g.winner]}`;
+    // Side — group by combination name, list which players held it
+    // Build combo map: comboLabel -> {players, ptsEach}
+    const histComboMap={};
+    players.forEach(p=>{
+      const cd=g.comboDetails[p],pd=g.ptDetails[p];
+      // Use saved held combo names to group by combination
+      if(cd.held&&cd.held.length>0){
+        cd.held.forEach(label=>{
+          if(!histComboMap[label])histComboMap[label]={label,holders:[],pts:2,net:null};
+          histComboMap[label].holders.push(p);
+        });
+      }
+      // Paplu / Taplu
+      if(pd.pap>0) histComboMap['pap_'+p]={label:'Paplu ×'+pd.pap,holders:[p],pts:ptScore(pd.pap),net:null};
+      if(pd.tap>0) histComboMap['tap_'+p]={label:'Taplu ×'+pd.tap,holders:[p],pts:ptScore(pd.tap),net:null};
+      // Net result per player
+      histComboMap['__net_'+p]={label:p,holders:[p],pts:cd.raw,net:g.sideScores[p],isNet:true};
+    });
+    // Build side rows grouped by combo
+    // Separate: combo rows first, then net rows
+    const comboEntries=Object.entries(histComboMap).filter(([k])=>!k.startsWith('__net_'));
+    const netEntries=Object.entries(histComboMap).filter(([k])=>k.startsWith('__net_'));
+    const comboRows=comboEntries.map(([k,e])=>
+      `<div class="side-row"><div class="side-row-left"><div class="side-combo-name">${e.label}</div><div class="side-combo-players">${e.holders.join(', ')}</div></div><div class="side-combo-pts">${e.pts} pts each</div></div>`
+    ).join('');
+    const netRows=netEntries.length?'<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:8px 0 4px;">Net Result</div>'+
+      netEntries.map(([k,e])=>{
+        const net=e.net;
+        const netStr=net>0?'<span class="col-grn">+'+net+'</span>':net<0?'<span class="col-red">'+net+'</span>':'0';
+        return `<div class="side-row"><div class="side-row-left"><div class="side-combo-name">${e.holders[0]}</div></div><div class="side-combo-pts">${netStr}</div></div>`;
+      }).join(''):'';
+    const sideRows=comboRows+netRows;
+    const strkRow=g.streakBonus>0?`<div class="side-row"><div class="side-row-left"><div class="side-combo-name">&#9733; Win Streak (${g.streakAt} in a row)</div><div class="side-combo-players">${g.winner}</div></div><div class="side-combo-pts">+${g.streakBonus}pts</div></div>`:'';
+    const sideBlock=sideRows||strkRow
+      ?`<div class="hist-tag" style="margin-top:6px;">Side</div><div class="sides-summary" style="display:block;margin-top:4px;">${sideRows}${strkRow}</div>`
+      :'';
+    return `<div class="hist-item">
+      <div class="hist-meta">Game ${g.game}</div>
+      <div class="hist-winner">&#10003; ${g.winner} declared</div>
+      <div class="hist-tag">Gameplay</div>
+      <div class="hist-detail">${gpWinner} &nbsp;|&nbsp; Losers: ${gpLosers}</div>
+      ${sideBlock}
+    </div>`;
+  }).join('');
+}
+
+function resetAll(){
+  if(!confirm('Start a new session? All scores will be reset.'))return;
+  players=[];gpTotals={};sideTotals={};streaks={};streakLevels={};
+  gameHistory=[];gameCount=1;selectedWinner=null;
+  document.querySelectorAll('#name-grid input').forEach(i=>i.value='');
+  showScreen('screen-setup');
+}
+</script>
+</body>
+</html>
