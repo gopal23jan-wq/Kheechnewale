@@ -24,7 +24,7 @@
   .header{padding:52px 20px 16px;flex-shrink:0;}
   .header h1{font-family:'Playfair Display',serif;font-size:28px;letter-spacing:-0.5px;}
   .header p{font-size:13px;color:var(--muted);margin-top:3px;}
-  .scroll{flex:1;overflow-y:auto;padding:0 16px 120px;-webkit-overflow-scrolling:touch;}
+  .scroll{flex:1;overflow-y:auto;padding:0 16px 16px;-webkit-overflow-scrolling:touch;}
   .sec{background:var(--surface);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
   .sec-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;}
   .name-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
@@ -35,7 +35,7 @@
   .btn{display:block;width:100%;padding:15px;border-radius:var(--radius);border:none;font-size:16px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;text-align:center;transition:transform 0.1s,opacity 0.1s;}
   .btn:active{transform:scale(0.97);opacity:0.85;}
   .btn-accent{background:var(--accent);color:#fff;}
-  .bottom-bar{position:fixed;bottom:0;left:0;right:0;padding:12px 16px calc(12px + var(--safe-bottom));background:var(--bg);border-top:1px solid rgba(255,255,255,0.07);}
+  .bottom-bar{flex-shrink:0;padding:12px 16px calc(12px + var(--safe-bottom));background:var(--bg);border-top:1px solid rgba(255,255,255,0.07);}
   .top-bar{display:flex;justify-content:space-between;align-items:center;padding:52px 20px 0;flex-shrink:0;}
   .top-bar h1{font-family:'Playfair Display',serif;font-size:24px;}
   .top-bar button{background:none;border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif;padding:6px 12px;cursor:pointer;}
@@ -133,7 +133,14 @@
   <div class="scroll">
     <div class="sec">
       <div class="sec-title">Players</div>
-      <div class="name-grid" id="name-grid"></div>
+      <div class="name-grid" id="name-grid">
+      <div class="name-wrap"><label>Player 1</label><input type="text" placeholder="Name" id="pname1" autocomplete="off"/></div>
+      <div class="name-wrap"><label>Player 2</label><input type="text" placeholder="Name" id="pname2" autocomplete="off"/></div>
+      <div class="name-wrap"><label>Player 3</label><input type="text" placeholder="Name" id="pname3" autocomplete="off"/></div>
+      <div class="name-wrap"><label>Player 4</label><input type="text" placeholder="Name" id="pname4" autocomplete="off"/></div>
+      <div class="name-wrap"><label>Player 5</label><input type="text" placeholder="Name" id="pname5" autocomplete="off"/></div>
+      <div class="name-wrap"><label>Player 6</label><input type="text" placeholder="Name" id="pname6" autocomplete="off"/></div>
+    </div>
     </div>
     <div class="sec">
       <div class="sec-title">Scoring tracks</div>
@@ -142,9 +149,12 @@
     </div>
     <div class="sec">
       <div class="sec-title">Combination points (Side)</div>
-      <div class="ref-row"><span>1 combo</span><span>2 pts</span></div>
-      <div class="ref-row"><span>2 combos</span><span>5 pts (+1 bonus)</span></div>
-      <div class="ref-row"><span>3 combos</span><span>7 pts (+1 bonus)</span></div>
+      <div class="ref-row"><span>1 combo (std)</span><span>2 pts</span></div>
+      <div class="ref-row"><span>2 combos (std)</span><span>5 pts (+1 bonus)</span></div>
+      <div class="ref-row"><span>3 combos (std)</span><span>7 pts (+1 bonus)</span></div>
+      <div class="ref-row"><span>3 Duplicates</span><span>2 pts (1 combo)</span></div>
+      <div class="ref-row"><span>4 Duplicates</span><span>3 pts (1 combo)</span></div>
+      <div class="ref-row"><span>Any combo + 4 Dup</span><span>+2 bonus (not +1)</span></div>
       <p class="note">Zero-sum: earn your own combo pts, but owe others theirs. Positives and negatives balance out.</p>
     </div>
     <div class="sec">
@@ -185,7 +195,8 @@
     <h1 style="font-size:16px;line-height:1.3;" id="entry-title">Enter points</h1>
     <button onclick="cancelEntry()">Cancel</button>
   </div>
-  <div class="scroll" id="entry-scroll" style="padding-top:12px;">
+  <div class="scroll" id="entry-scroll" style="padding-top:12px;padding-bottom:16px;">
+    <div style="background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--info);">&#9432; Leave <strong>one</strong> player's card points blank — that player declared and receives all the others' points.</div>
     <div id="player-blocks"></div>
     <div class="pot-summary" id="pot-summary"></div>
     <div class="sides-summary" id="sides-summary" style="margin-top:12px;"></div>
@@ -225,7 +236,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       History
     </button>
-    <button class="tab" onclick="showDeclareScreen()">
+    <button class="tab" onclick="showEntryScreen()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       New game
     </button>
@@ -233,27 +244,50 @@
 </div>
 
 <script>
+// Each combo now carries its own point value (pts).
+// Standard combos = 2 pts. 3 Duplicates = 2 pts. 4 Duplicates = 3 pts.
 const COMBOS=[
-  {id:'tanala',label:'Tanala'},
-  {id:'fourcarder',label:'Four-Carder'},
-  {id:'fourkind',label:'Four-of-a-Kind'},
-  {id:'toplow',label:'Top & Low'},
-  {id:'tworuns',label:'Two-Runs'},
-  {id:'trios',label:'3-Trios'},
+  {id:'tanala',    label:'Tanala',       pts:2},
+  {id:'fourcarder',label:'Four-Carder',  pts:2},
+  {id:'fourkind',  label:'Four-of-a-Kind',pts:2},
+  {id:'toplow',    label:'Top & Low',    pts:2},
+  {id:'tworuns',   label:'Two-Runs',     pts:2},
+  {id:'trios',     label:'3-Trios',      pts:2},
+  {id:'dup3',      label:'3 Duplicates', pts:2},
+  {id:'dup4',      label:'4 Duplicates', pts:3},
 ];
 
 // Paplu/Taplu: 1→1, 2→3, 3→5
 function ptScore(n){if(n===0)return 0;if(n===1)return 1;if(n===2)return 3;return 5;}
-// Combos: n→ n*2 + (n>=2?1:0)
-function comboScore(n){return n===0?0:n*2+(n>=2?1:0);}
+
+// Combo scoring using individual point values.
+// Bonus for 2+ combos: +2 if any combo has pts>2 (i.e. 4 Duplicates is included), else +1.
+// Examples: 1 std=2, 2 std=5, 3 std=7, 3Dup alone=2, 4Dup alone=3, 3Dup+4Dup=7.
+function comboScore(vals){
+  if(!vals||vals.length===0)return 0;
+  const sum=vals.reduce((s,v)=>s+v,0);
+  const maxVal=Math.max(...vals);
+  const bonus=vals.length>=2?(maxVal>2?2:1):0;
+  return sum+bonus;
+}
+
 // Streak bonus by level
 function streakBonus(level){return level+1;}
 
-// Gameplay: losers get −pts, winner gets +sum. Higher = better.
-// Side: each player's net = own side pts − others' side pts. Higher = better.
+// Checkbox helper
+function getCheck(id){return !!document.getElementById(id)?.checked;}
+
+// Get array of pts values for checked combos for player p
+function getCheckedComboVals(p){
+  return COMBOS.filter(c=>document.getElementById('combo_'+p+'_'+c.id)?.checked).map(c=>c.pts);
+}
+function getComboCount(p){return COMBOS.filter(c=>document.getElementById('combo_'+p+'_'+c.id)?.checked).length;}
+function getPapVal(p){return parseInt(document.getElementById('pap_'+p+'_disp')?.dataset.val||'0');}
+function getTapVal(p){return parseInt(document.getElementById('tap_'+p+'_disp')?.dataset.val||'0');}
+function getSideRaw(p){return comboScore(getCheckedComboVals(p))+ptScore(getPapVal(p))+ptScore(getTapVal(p));}
 
 let players=[],gpTotals={},sideTotals={},gameHistory=[],gameCount=1,selectedWinner=null;
-let streaks={},streakLevels={};
+let streaks={},streakLevels={},sessionDate='';
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -285,29 +319,19 @@ function startSession(){
   gpTotals={};sideTotals={};streaks={};streakLevels={};
   players.forEach(p=>{gpTotals[p]=0;sideTotals[p]=0;streaks[p]=0;streakLevels[p]=0;});
   gameHistory=[];gameCount=1;selectedWinner=null;
-  showDeclareScreen();
+  sessionDate=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  showEntryScreen();
 }
 
-function showDeclareScreen(){
-  selectedWinner=null;
-  document.getElementById('declare-badge').textContent='Game '+gameCount;
-  document.getElementById('winner-grid').innerHTML=players.map(p=>{
-    const s=streaks[p];
-    const pips=s>0?'<br>'+Array.from({length:s},()=>'<span class="streak-pip"></span>').join(''):'';
-    return `<button class="winner-btn" onclick="selectWinner('${p}',this)">${p}${pips}</button>`;
-  }).join('');
-  showScreen('screen-declare');
-}
-
-function selectWinner(name,btn){
-  selectedWinner=name;
-  document.querySelectorAll('.winner-btn').forEach(b=>b.classList.remove('selected'));
-  btn.classList.add('selected');
-  setTimeout(()=>showEntryScreen(),250);
+// Infer who declared from the empty card field (used for live streak preview)
+function inferDeclarer(){
+  const empties=players.filter(p=>{const el=document.getElementById('card_'+p);return el&&el.value.trim()===''});
+  return empties.length===1?empties[0]:null;
 }
 
 function showEntryScreen(){
-  document.getElementById('entry-title').textContent='Game '+gameCount+' — '+selectedWinner+' declared';
+  selectedWinner=null;
+  document.getElementById('entry-title').textContent='Game '+gameCount;
   renderBlocks();
   document.getElementById('pot-summary').style.display='none';
   const ss=document.getElementById('sides-summary');if(ss){ss.style.display='none';ss.innerHTML='';}
@@ -315,22 +339,14 @@ function showEntryScreen(){
   showScreen('screen-entry');
 }
 
-function getPapVal(p){return parseInt(document.getElementById('pap_'+p+'_disp')?.dataset.val||'0');}
-function getTapVal(p){return parseInt(document.getElementById('tap_'+p+'_disp')?.dataset.val||'0');}
-function getComboCount(p){return COMBOS.filter(c=>document.getElementById('combo_'+p+'_'+c.id)?.checked).length;}
-function getSideRaw(p){return comboScore(getComboCount(p))+ptScore(getPapVal(p))+ptScore(getTapVal(p));}
-
 function renderBlocks(){
   document.getElementById('player-blocks').innerHTML=players.map(p=>{
-    const isW=p===selectedWinner;
 
-    const gpSection=isW
-      ?`<div style="font-size:12px;color:var(--success);margin-bottom:10px;padding:7px 10px;background:rgba(46,204,113,0.08);border-radius:8px;">&#8593; Gains the sum of all other players' card points</div>`
-      :`<div>
+    const gpSection=`<div>
           <div class="sub-title">Gameplay — card points in hand</div>
           <div class="pts-row">
-            <label>Incomplete suits value</label>
-            <input class="pts-input" type="number" min="0" value="" placeholder="0" id="card_${p}" inputmode="numeric" oninput="updatePot()"/>
+            <label>Points in hand (blank = declared)</label>
+            <input class="pts-input" type="number" min="0" value="" placeholder="—" id="card_${p}" inputmode="numeric" oninput="updatePot()"/>
           </div>
         </div>
         <div class="divider"></div>`;
@@ -360,27 +376,17 @@ function renderBlocks(){
         </div>
       </div>`;
 
-    const chips=COMBOS.map(c=>
-      `<label class="combo-chip" id="chip_${p}_${c.id}">
+    const chips=COMBOS.map(c=>{
+      const ptsLabel=c.pts!==2?` (${c.pts}pts)`:'';
+      return `<label class="combo-chip" id="chip_${p}_${c.id}">
         <input type="checkbox" id="combo_${p}_${c.id}" onchange="updateTally('${p}')"/>
-        <span>${c.label}</span>
-      </label>`).join('');
-
-    let streakNote='';
-    if(isW){
-      const ns=streaks[p]+1,rem=3-(ns%3);
-      if(ns%3===0){
-        const nl=streakLevels[p]+1;
-        streakNote=`<div class="streak-note bonus">&#9733; ${ns} wins in a row — +${streakBonus(nl)} pt streak bonus!</div>`;
-      } else {
-        streakNote=`<div class="streak-note building">${ns} win${ns>1?'s':''} in a row — ${rem} more for streak bonus</div>`;
-      }
-    }
+        <span>${c.label}${ptsLabel}</span>
+      </label>`;
+    }).join('');
 
     return `<div class="pblock">
       <div class="pblock-hdr">
         <span class="pblock-name">${p}</span>
-        ${isW?'<span class="badge badge-declared">Declared</span>':''}
       </div>
       ${gpSection}
       <div class="sub-title">Side — combinations</div>
@@ -388,7 +394,6 @@ function renderBlocks(){
       <div class="tally-badge" id="tally_${p}"></div>
       <div class="divider"></div>
       ${ptSection}
-      ${streakNote}
     </div>`;
   }).join('');
   updatePot();
@@ -418,7 +423,8 @@ function stepPT(key,dir){
 }
 
 function updateTally(p){
-  const count=getComboCount(p);
+  const vals=getCheckedComboVals(p);
+  const count=vals.length;
   COMBOS.forEach(c=>{
     const chip=document.getElementById('chip_'+p+'_'+c.id);
     const cb=document.getElementById('combo_'+p+'_'+c.id);
@@ -428,54 +434,52 @@ function updateTally(p){
   if(tally){
     if(count===0){tally.style.display='none';}
     else{
-      const pts=comboScore(count);
+      const pts=comboScore(vals);
+      const maxVal=count>0?Math.max(...vals):0;
+      const bonus=count>=2?(maxVal>2?2:1):0;
       tally.style.display='block';
-      tally.textContent=count===1?`1 combo — ${pts} pts`:`${count} combos — ${pts} pts (incl. +1 bonus)`;
+      if(count===1) tally.textContent=`1 combo — ${pts} pts`;
+      else tally.textContent=`${count} combos — ${pts} pts (incl. +${bonus} bonus)`;
     }
   }
   updatePot();
 }
 
 function updatePot(){
+  // Infer declarer from the one player with blank card field (for streak preview)
+  const inferredW=inferDeclarer();
   let sideTotal=players.reduce((s,p)=>s+getSideRaw(p),0);
-  const ns=streaks[selectedWinner]+1;
-  if(ns%3===0)sideTotal+=streakBonus(streakLevels[selectedWinner]+1);
+  const ns=inferredW?(streaks[inferredW]||0)+1:0;
+  if(inferredW&&ns%3===0)sideTotal+=streakBonus((streakLevels[inferredW]||0)+1);
   const el=document.getElementById('pot-summary');
   if(sideTotal>0){el.style.display='block';el.textContent='Total Side pts from shared pot this hand: '+sideTotal+' pts';}
   else el.style.display='none';
 
-  // Build live Sides summary grouped by combination
+  // Build live Sides summary
   const summaryEl=document.getElementById('sides-summary');
   if(!summaryEl)return;
-  // Gather all ticked combos across all players
-  const comboMap={}; // comboId -> {label, players:[], pts}
+  const comboMap={};
   players.forEach(p=>{
     COMBOS.forEach(c=>{
       const cb=document.getElementById('combo_'+p+'_'+c.id);
       if(cb&&cb.checked){
-        if(!comboMap[c.id])comboMap[c.id]={label:c.label,holders:[],pts:2};
+        if(!comboMap[c.id])comboMap[c.id]={label:c.label,holders:[],pts:c.pts};
         comboMap[c.id].holders.push(p);
       }
     });
     // Paplu
     const papV=getPapVal(p);
-    if(papV>0){
-      const k='paplu_'+p;
-      comboMap[k]={label:'Paplu ×'+papV,holders:[p],pts:ptScore(papV)};
-    }
+    if(papV>0){comboMap['paplu_'+p]={label:'Paplu ×'+papV,holders:[p],pts:ptScore(papV)};}
     // Taplu
     const tapV=getTapVal(p);
-    if(tapV>0){
-      const k='taplu_'+p;
-      comboMap[k]={label:'Taplu ×'+tapV,holders:[p],pts:ptScore(tapV)};
-    }
+    if(tapV>0){comboMap['taplu_'+p]={label:'Taplu ×'+tapV,holders:[p],pts:ptScore(tapV)};}
   });
-  // Streak bonus
+  // Streak bonus (shown only when declarer is unambiguous)
   let streakRow='';
-  if(ns%3===0){
-    const bonus=streakBonus(streakLevels[selectedWinner]+1);
+  if(inferredW&&ns%3===0){
+    const bonus=streakBonus((streakLevels[inferredW]||0)+1);
     streakRow=`<div class="side-row">
-      <div class="side-row-left"><div class="side-combo-name">&#9733; Win Streak (${ns} in a row)</div><div class="side-combo-players">${selectedWinner}</div></div>
+      <div class="side-row-left"><div class="side-combo-name">&#9733; Win Streak (${ns} in a row)</div><div class="side-combo-players">${inferredW}</div></div>
       <div class="side-combo-pts">+${bonus} pts</div>
     </div>`;
   }
@@ -493,7 +497,6 @@ function updatePot(){
 }
 
 function fmtGP(v){
-  // colour helper for display
   if(v>0)return '<span class="col-grn">+'+v+'</span>';
   if(v<0)return '<span class="col-red">'+v+'</span>';
   return '0';
@@ -505,33 +508,33 @@ function fmtSide(v){
 }
 
 function recordGame(){
+  // ── Detect declarer: the one player with a blank card field ──
+  const declared=players.filter(p=>{const el=document.getElementById('card_'+p);return el&&el.value.trim()===''});
+  if(declared.length===0){alert('Leave one player\'s card points blank to mark them as the declarer.');return;}
+  if(declared.length>1){alert('Only one player can declare. Leave only one card points field blank.');return;}
+  selectedWinner=declared[0];
+
   const res={
     game:gameCount,winner:selectedWinner,
-    gpScores:{},   // per-player GP delta this game
-    sideScores:{}, // per-player Side net this game
+    gpScores:{},sideScores:{},
     comboDetails:{},ptDetails:{},
     streakBonus:0,streakAt:0
   };
 
   // ── Gameplay ──────────────────────────────────────────────
-  // Each loser enters card pts → those are NEGATIVE for the loser.
-  // Winner gains the SUM as POSITIVE.
   let gpWinnerGain=0;
   players.forEach(p=>{
     if(p!==selectedWinner){
       const v=parseInt(document.getElementById('card_'+p)?.value)||0;
-      res.gpScores[p]=-v;      // loser loses v points (negative)
+      res.gpScores[p]=-v;
       gpTotals[p]-=v;
       gpWinnerGain+=v;
     }
   });
-  res.gpScores[selectedWinner]=+gpWinnerGain;  // winner gains positive sum
+  res.gpScores[selectedWinner]=+gpWinnerGain;
   gpTotals[selectedWinner]+=gpWinnerGain;
 
-  // ── Side ─────────────────────────────────────────────────────────
-  // Zero-sum: net[p] = raw[p]*n - totalRaw
-  // Each player pays every other player their earned pts, receives their own from everyone.
-  // Integers, always sums to zero across all players.
+  // ── Side ─────────────────────────────────────────────────
   const rawSide={};
   players.forEach(p=>rawSide[p]=getSideRaw(p));
   const totalSideRaw=players.reduce((s,p)=>s+rawSide[p],0);
@@ -542,8 +545,9 @@ function recordGame(){
     sideTotals[p]+=net;
     const papV=getPapVal(p),tapV=getTapVal(p);
     res.ptDetails[p]={pap:papV,tap:tapV};
-    const heldCombos=COMBOS.filter(c=>getCheck('combo_'+p+'_'+c.id)).map(c=>c.label);
-    res.comboDetails[p]={count:getComboCount(p),pts:comboScore(getComboCount(p)),raw:rawSide[p],held:heldCombos};
+    // Save held combos with their label and pts value for history display
+    const heldCombos=COMBOS.filter(c=>getCheck('combo_'+p+'_'+c.id)).map(c=>({label:c.label,pts:c.pts}));
+    res.comboDetails[p]={count:getComboCount(p),raw:rawSide[p],held:heldCombos};
   });
 
   // ── Streaks ───────────────────────────────────────────────
@@ -554,14 +558,15 @@ function recordGame(){
     const bonus=streakBonus(streakLevels[selectedWinner]);
     res.streakBonus=bonus;
     res.streakAt=streaks[selectedWinner];
-    sideTotals[selectedWinner]+=bonus;   // streak bonus is a positive gain on Side
+    sideTotals[selectedWinner]+=bonus;
     streaks[selectedWinner]=0;
     streakLevels[selectedWinner]=0;
   }
 
+  res.date=sessionDate;
   gameHistory.unshift(res);
   gameCount++;
-  document.getElementById('main-badge').textContent='Game '+gameCount;
+  document.getElementById('main-badge').textContent='Game '+gameCount+' · '+sessionDate;
   renderLeaderboard(res);
   renderHistory();
   showScreen('screen-main');
@@ -569,7 +574,7 @@ function recordGame(){
 }
 
 function cancelEntry(){
-  if(gameHistory.length===0)showScreen('screen-declare');
+  if(gameHistory.length===0)showScreen('screen-setup');
   else showScreen('screen-main');
 }
 
@@ -582,7 +587,6 @@ function renderLeaderboard(last){
     banner.innerHTML=`&#9733; ${last.winner} hit ${last.streakAt} wins in a row &mdash; +${last.streakBonus} pt streak bonus!`;
   } else if(last) banner.style.display='none';
 
-  // Gameplay — higher is better
   const gpSorted=[...players].sort((a,b)=>gpTotals[b]-gpTotals[a]);
   document.getElementById('lb-gp').innerHTML=
     `<div class="lb-hdr"><span style="flex:1;padding-left:30px;">Player</span><span>GP pts</span></div>`+
@@ -598,7 +602,6 @@ function renderLeaderboard(last){
       </div>`;
     }).join('');
 
-  // Side — higher is better
   const sideSorted=[...players].sort((a,b)=>sideTotals[b]-sideTotals[a]);
   document.getElementById('lb-side').innerHTML=
     `<div class="lb-hdr"><span style="flex:1;padding-left:30px;">Player</span><span>Side pts</span></div>`+
@@ -612,7 +615,6 @@ function renderLeaderboard(last){
       </div>`;
     }).join('');
 
-  // Combined — higher is better
   const combined={};players.forEach(p=>combined[p]=gpTotals[p]+sideTotals[p]);
   const combSorted=[...players].sort((a,b)=>combined[b]-combined[a]);
   document.getElementById('lb-total').innerHTML=
@@ -634,40 +636,36 @@ function renderHistory(){
   const wrap=document.getElementById('history');
   if(!gameHistory.length){wrap.innerHTML='<div class="empty">No games yet</div>';return;}
   wrap.innerHTML=gameHistory.map(g=>{
-    // Gameplay lines
     const losers=players.filter(p=>p!==g.winner);
-    const gpLosers=losers.map(p=>`${p}: ${g.gpScores[p]}`).join(' · ');
-    const gpWinner=`${g.winner}: +${g.gpScores[g.winner]}`;
-    // Side — group by combination name, list which players held it
-    // Build combo map: comboLabel -> {players, ptsEach}
+    const gpLosers=losers.map(p=>`<span class="col-red">${p}: ${g.gpScores[p]}</span>`).join(' · ');
+    const gpWinner=`<span class="col-grn">${g.winner}: +${g.gpScores[g.winner]}</span>`;
+    // Build combo map: group same-label combos across players, preserving pts
     const histComboMap={};
     players.forEach(p=>{
       const cd=g.comboDetails[p],pd=g.ptDetails[p];
-      // Use saved held combo names to group by combination
       if(cd.held&&cd.held.length>0){
-        cd.held.forEach(label=>{
-          if(!histComboMap[label])histComboMap[label]={label,holders:[],pts:2,net:null};
+        cd.held.forEach(h=>{
+          const label=typeof h==='string'?h:h.label;
+          const pts=typeof h==='object'?h.pts:2;
+          if(!histComboMap[label])histComboMap[label]={label,holders:[],pts,net:null};
           histComboMap[label].holders.push(p);
         });
       }
-      // Paplu / Taplu
       if(pd.pap>0) histComboMap['pap_'+p]={label:'Paplu ×'+pd.pap,holders:[p],pts:ptScore(pd.pap),net:null};
       if(pd.tap>0) histComboMap['tap_'+p]={label:'Taplu ×'+pd.tap,holders:[p],pts:ptScore(pd.tap),net:null};
-      // Net result per player
       histComboMap['__net_'+p]={label:p,holders:[p],pts:cd.raw,net:g.sideScores[p],isNet:true};
     });
-    // Build side rows grouped by combo
-    // Separate: combo rows first, then net rows
     const comboEntries=Object.entries(histComboMap).filter(([k])=>!k.startsWith('__net_'));
     const netEntries=Object.entries(histComboMap).filter(([k])=>k.startsWith('__net_'));
     const comboRows=comboEntries.map(([k,e])=>
       `<div class="side-row"><div class="side-row-left"><div class="side-combo-name">${e.label}</div><div class="side-combo-players">${e.holders.join(', ')}</div></div><div class="side-combo-pts">${e.pts} pts each</div></div>`
     ).join('');
-    const netRows=netEntries.length?'<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:8px 0 4px;">Net Result</div>'+
+    const netRows=netEntries.length?'<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:8px 0 4px;">Side Credits</div>'+
       netEntries.map(([k,e])=>{
         const net=e.net;
-        const netStr=net>0?'<span class="col-grn">+'+net+'</span>':net<0?'<span class="col-red">'+net+'</span>':'0';
-        return `<div class="side-row"><div class="side-row-left"><div class="side-combo-name">${e.holders[0]}</div></div><div class="side-combo-pts">${netStr}</div></div>`;
+        const rawPts=e.pts;
+        const netStr=net>0?'<span class="col-grn">+'+net+'</span>':net<0?'<span class="col-red">'+net+'</span>':'<span style="color:var(--muted)">0</span>';
+        return `<div class="side-row"><div class="side-row-left"><div class="side-combo-name">${e.holders[0]}</div><div class="side-combo-players">earned ${rawPts} side pt${rawPts!==1?'s':''}</div></div><div class="side-combo-pts">${netStr} net</div></div>`;
       }).join(''):'';
     const sideRows=comboRows+netRows;
     const strkRow=g.streakBonus>0?`<div class="side-row"><div class="side-row-left"><div class="side-combo-name">&#9733; Win Streak (${g.streakAt} in a row)</div><div class="side-combo-players">${g.winner}</div></div><div class="side-combo-pts">+${g.streakBonus}pts</div></div>`:'';
@@ -675,7 +673,7 @@ function renderHistory(){
       ?`<div class="hist-tag" style="margin-top:6px;">Side</div><div class="sides-summary" style="display:block;margin-top:4px;">${sideRows}${strkRow}</div>`
       :'';
     return `<div class="hist-item">
-      <div class="hist-meta">Game ${g.game}</div>
+      <div class="hist-meta">Game ${g.game}${g.date?' · '+g.date:''}</div>
       <div class="hist-winner">&#10003; ${g.winner} declared</div>
       <div class="hist-tag">Gameplay</div>
       <div class="hist-detail">${gpWinner} &nbsp;|&nbsp; Losers: ${gpLosers}</div>
@@ -688,7 +686,7 @@ function resetAll(){
   if(!confirm('Start a new session? All scores will be reset.'))return;
   players=[];gpTotals={};sideTotals={};streaks={};streakLevels={};
   gameHistory=[];gameCount=1;selectedWinner=null;
-  document.querySelectorAll('#name-grid input').forEach(i=>i.value='');
+  for(let i=1;i<=6;i++){const el=document.getElementById('pname'+i);if(el)el.value='';}
   showScreen('screen-setup');
 }
 </script>
