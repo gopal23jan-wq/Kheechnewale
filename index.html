@@ -166,10 +166,10 @@
     </div>
     <div class="sec">
       <div class="sec-title">Win streak bonus (Side)</div>
-      <div class="ref-row"><span>3 wins in a row</span><span>2 pts</span></div>
-      <div class="ref-row"><span>6 wins in a row</span><span>3 pts</span></div>
-      <div class="ref-row"><span>9 wins in a row</span><span>4 pts</span></div>
-      <p class="note">Streak resets after each bonus. Bonus added to winner's Side score.</p>
+      <div class="ref-row"><span>3 wins in a row</span><span>2 pts per loser</span></div>
+      <div class="ref-row"><span>5 wins in a row</span><span>3 pts per loser</span></div>
+      <div class="ref-row"><span>7 wins in a row</span><span>5 pts per loser</span></div>
+      <p class="note">Streak resets after each bonus. Each loser pays the bonus pts; winner collects from all losers.</p>
     </div>
   </div>
   <div class="bottom-bar">
@@ -271,8 +271,9 @@ function comboScore(vals){
   return sum+bonus;
 }
 
-// Streak bonus by level
-function streakBonus(level){return level+1;}
+// Streak bonus and threshold by level (0→3 wins/2pts, 1→5 wins/3pts, 2→7 wins/5pts)
+function streakBonus(level){return level===0?2:level===1?3:5;}
+function streakThreshold(level){return level===0?3:level===1?5:7;}
 
 // Checkbox helper
 function getCheck(id){return !!document.getElementById(id)?.checked;}
@@ -454,7 +455,7 @@ function updatePot(){
   const inferredW=inferDeclarer();
   let sideTotal=players.reduce((s,p)=>s+getSideRaw(p),0);
   const ns=inferredW?(streaks[inferredW]||0)+1:0;
-  if(inferredW&&ns%3===0)sideTotal+=streakBonus((streakLevels[inferredW]||0)+1);
+  // Streak bonus is zero-sum (per loser) so not added to shared pot total
   const el=document.getElementById('pot-summary');
   if(sideTotal>0){el.style.display='block';el.textContent='Total Side pts from shared pot this hand: '+sideTotal+' pts';}
   else el.style.display='none';
@@ -480,12 +481,15 @@ function updatePot(){
   });
   // Streak bonus (shown only when declarer is unambiguous)
   let streakRow='';
-  if(inferredW&&ns%3===0){
-    const bonus=streakBonus((streakLevels[inferredW]||0)+1);
-    streakRow=`<div class="side-row">
-      <div class="side-row-left"><div class="side-combo-name">&#9733; Win Streak (${ns} in a row)</div><div class="side-combo-players">${inferredW}</div></div>
-      <div class="side-combo-pts">+${bonus} pts</div>
-    </div>`;
+  if(inferredW){
+    const lv=streakLevels[inferredW]||0;
+    if(ns>=streakThreshold(lv)){
+      const bonus=streakBonus(lv);
+      streakRow=`<div class="side-row">
+        <div class="side-row-left"><div class="side-combo-name">&#9733; Win Streak (${ns} in a row)</div><div class="side-combo-players">${inferredW}</div></div>
+        <div class="side-combo-pts">+${bonus} pts/loser</div>
+      </div>`;
+    }
   }
   const entries=Object.values(comboMap);
   if(entries.length===0&&!streakRow){summaryEl.style.display='none';return;}
@@ -557,14 +561,17 @@ function recordGame(){
   // ── Streaks ───────────────────────────────────────────────
   players.forEach(p=>{if(p!==selectedWinner){streaks[p]=0;streakLevels[p]=0;}});
   streaks[selectedWinner]+=1;
-  if(streaks[selectedWinner]%3===0){
-    streakLevels[selectedWinner]+=1;
-    const bonus=streakBonus(streakLevels[selectedWinner]);
+  const lv=streakLevels[selectedWinner]||0;
+  if(streaks[selectedWinner]>=streakThreshold(lv)){
+    const bonus=streakBonus(lv);
     res.streakBonus=bonus;
     res.streakAt=streaks[selectedWinner];
-    sideTotals[selectedWinner]+=bonus;
+    // Zero-sum per-loser: winner collects bonus from every loser
+    const loserList=players.filter(p=>p!==selectedWinner);
+    sideTotals[selectedWinner]+=bonus*loserList.length;
+    loserList.forEach(p=>{sideTotals[p]-=bonus;});
     streaks[selectedWinner]=0;
-    streakLevels[selectedWinner]=0;
+    streakLevels[selectedWinner]=(lv+1)%3; // cycles 0→1→2→0 (3→5→7→3 wins)
   }
 
   res.date=sessionDate;
@@ -588,7 +595,7 @@ function renderLeaderboard(last){
   const banner=document.getElementById('streak-banner');
   if(last&&last.streakBonus>0){
     banner.style.display='block';
-    banner.innerHTML=`&#9733; ${last.winner} hit ${last.streakAt} wins in a row &mdash; +${last.streakBonus} pt streak bonus!`;
+    banner.innerHTML=`&#9733; ${last.winner} hit ${last.streakAt} wins in a row &mdash; +${last.streakBonus} pts per loser streak bonus!`;
   } else if(last) banner.style.display='none';
 
   const gpSorted=[...players].sort((a,b)=>gpTotals[b]-gpTotals[a]);
@@ -672,7 +679,7 @@ function renderHistory(){
         return `<div class="side-row"><div class="side-row-left"><div class="side-combo-name">${e.holders[0]}</div><div class="side-combo-players">earned ${rawPts} side pt${rawPts!==1?'s':''}</div></div><div class="side-combo-pts">${netStr} net</div></div>`;
       }).join(''):'';
     const sideRows=comboRows+netRows;
-    const strkRow=g.streakBonus>0?`<div class="side-row"><div class="side-row-left"><div class="side-combo-name">&#9733; Win Streak (${g.streakAt} in a row)</div><div class="side-combo-players">${g.winner}</div></div><div class="side-combo-pts">+${g.streakBonus}pts</div></div>`:'';
+    const strkRow=g.streakBonus>0?`<div class="side-row"><div class="side-row-left"><div class="side-combo-name">&#9733; Win Streak (${g.streakAt} in a row)</div><div class="side-combo-players">${g.winner} collects ${g.streakBonus} pts from each loser</div></div><div class="side-combo-pts">+${g.streakBonus}pts/loser</div></div>`:'';
     const sideBlock=sideRows||strkRow
       ?`<div class="hist-tag" style="margin-top:6px;">Side</div><div class="sides-summary" style="display:block;margin-top:4px;">${sideRows}${strkRow}</div>`
       :'';
