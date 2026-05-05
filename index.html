@@ -415,8 +415,12 @@ function stepPT(key,dir){
   const chipEl=document.getElementById('chip_'+p+'_tanala');
   if(tanalaEl){
     const should=papV===3||tapV===3;
-    tanalaEl.checked=should;
-    if(chipEl)chipEl.classList.toggle('checked',should);
+    // Only auto-CHECK Tanala when condition is met — never forcibly uncheck it,
+    // so manually-ticked combos are not disturbed when Paplu/Taplu is adjusted.
+    if(should){
+      tanalaEl.checked=true;
+      if(chipEl)chipEl.classList.add('checked');
+    }
     updateTally(p);
   }
   updatePot();
