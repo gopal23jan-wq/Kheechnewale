@@ -169,7 +169,7 @@
       <div class="ref-row"><span>3 wins in a row</span><span>2 pts per loser</span></div>
       <div class="ref-row"><span>5 wins in a row</span><span>3 pts per loser</span></div>
       <div class="ref-row"><span>7 wins in a row</span><span>5 pts per loser</span></div>
-      <p class="note">Streak resets after each bonus. Each loser pays the bonus pts; winner collects from all losers.</p>
+      <p class="note">Bonuses fire at 3, 5, and 7 wins within the same run — all three can be earned in one streak. Streak resets only after the 7-win bonus or on any loss. Each loser pays the bonus; winner collects from all.</p>
     </div>
   </div>
   <div class="bottom-bar">
@@ -271,9 +271,9 @@ function comboScore(vals){
   return sum+bonus;
 }
 
-// Streak bonus and threshold by level (0→3 wins/2pts, 1→5 wins/3pts, 2→7 wins/5pts)
-function streakBonus(level){return level===0?2:level===1?3:5;}
-function streakThreshold(level){return level===0?3:level===1?5:7;}
+// Streak bonus by consecutive win count milestone (3→2pts, 5→3pts, 7→5pts per loser)
+// Bonuses fire at 3, 5 AND 7 within the same run; streak resets only after the 7-win bonus.
+function streakBonusAt(n){return n===3?2:n===5?3:n===7?5:0;}
 
 // Checkbox helper
 function getCheck(id){return !!document.getElementById(id)?.checked;}
@@ -479,15 +479,14 @@ function updatePot(){
     const tapV=getTapVal(p);
     if(tapV>0){comboMap['taplu_'+p]={label:'Taplu ×'+tapV,holders:[p],pts:ptScore(tapV)};}
   });
-  // Streak bonus (shown only when declarer is unambiguous)
+  // Streak bonus preview (shown only when declarer is unambiguous)
   let streakRow='';
   if(inferredW){
-    const lv=streakLevels[inferredW]||0;
-    if(ns>=streakThreshold(lv)){
-      const bonus=streakBonus(lv);
+    const previewBonus=streakBonusAt(ns);
+    if(previewBonus>0){
       streakRow=`<div class="side-row">
         <div class="side-row-left"><div class="side-combo-name">&#9733; Win Streak (${ns} in a row)</div><div class="side-combo-players">${inferredW}</div></div>
-        <div class="side-combo-pts">+${bonus} pts/loser</div>
+        <div class="side-combo-pts">+${previewBonus} pts/loser</div>
       </div>`;
     }
   }
@@ -559,19 +558,19 @@ function recordGame(){
   });
 
   // ── Streaks ───────────────────────────────────────────────
-  players.forEach(p=>{if(p!==selectedWinner){streaks[p]=0;streakLevels[p]=0;}});
+  // Bonuses fire at exactly 3, 5, and 7 wins within the same continuous run.
+  // Streak resets only after the 7-win bonus. Losing always resets to 0.
+  players.forEach(p=>{if(p!==selectedWinner){streaks[p]=0;}});
   streaks[selectedWinner]+=1;
-  const lv=streakLevels[selectedWinner]||0;
-  if(streaks[selectedWinner]>=streakThreshold(lv)){
-    const bonus=streakBonus(lv);
+  const sw=streaks[selectedWinner];
+  const bonus=streakBonusAt(sw);
+  if(bonus>0){
     res.streakBonus=bonus;
-    res.streakAt=streaks[selectedWinner];
-    // Zero-sum per-loser: winner collects bonus from every loser
+    res.streakAt=sw;
     const loserList=players.filter(p=>p!==selectedWinner);
     sideTotals[selectedWinner]+=bonus*loserList.length;
     loserList.forEach(p=>{sideTotals[p]-=bonus;});
-    streaks[selectedWinner]=0;
-    streakLevels[selectedWinner]=(lv+1)%3; // cycles 0→1→2→0 (3→5→7→3 wins)
+    if(sw===7)streaks[selectedWinner]=0; // reset only after 7-win milestone
   }
 
   res.date=sessionDate;
