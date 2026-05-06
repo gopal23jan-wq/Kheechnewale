@@ -118,6 +118,33 @@
   .ref-row span:last-child{color:var(--gold);font-weight:500;}
   .note{font-size:11px;color:var(--muted);margin-top:8px;}
   .empty{text-align:center;color:var(--muted);font-size:14px;padding:40px 20px;}
+
+  .mute-btn{background:none;border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:var(--muted);font-size:18px;padding:4px 10px;cursor:pointer;line-height:1;}
+  .mute-btn.active{color:var(--gold);border-color:var(--gold);}
+  .vcog-btn{background:none;border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:var(--muted);font-size:15px;padding:4px 10px;cursor:pointer;line-height:1;}
+  .entry-tab-bar{display:flex;background:var(--surface);border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0;}
+  .entry-tab{flex:1;padding:10px;border:none;background:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;}
+  .entry-tab.active{color:var(--text);border-bottom-color:var(--accent);}
+  .entry-tab-panel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+  .entry-tab-panel.active{display:flex;}
+  .review-sec{background:var(--surface);border-radius:var(--radius);padding:14px;margin-bottom:10px;}
+  .review-title{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;font-weight:500;}
+  .review-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:14px;}
+  .review-row:last-child{border-bottom:none;}
+  .review-pts{font-size:15px;font-weight:600;}
+  .read-btn{display:block;width:100%;padding:12px;border-radius:var(--radius);border:none;font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;background:var(--card);color:var(--gold);margin-bottom:12px;}
+  /* Voice settings sheet */
+  #vs-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99;}
+  #vs-sheet{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px calc(24px + var(--safe-bottom));z-index:100;border-top:1px solid rgba(255,255,255,0.1);max-height:85vh;overflow-y:auto;}
+  .vs-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:20px;font-weight:500;}
+  .vs-row{margin-bottom:16px;}
+  .vs-label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:6px;}
+  .vs-label span:last-child{color:var(--text);font-weight:500;}
+  input[type=range]{width:100%;accent-color:var(--gold);height:4px;}
+  .vs-select{width:100%;background:var(--card);border:none;border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-top:4px;}
+  .vs-btns{display:flex;gap:8px;margin-top:20px;}
+  .vs-test{flex:1;padding:12px;border-radius:var(--radius);border:none;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;background:var(--card);color:var(--gold);}
+  .vs-done{flex:1;padding:12px;border-radius:var(--radius);border:none;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;background:var(--accent);color:#fff;}
   .col-grn{color:var(--success);}
   .col-red{color:var(--accent);}
 </style>
@@ -191,15 +218,33 @@
 
 <!-- ENTRY -->
 <div class="screen" id="screen-entry">
-  <div class="top-bar" style="padding-bottom:12px;">
+  <div class="top-bar" style="padding-bottom:8px;">
     <h1 style="font-size:16px;line-height:1.3;" id="entry-title">Enter points</h1>
-    <button onclick="cancelEntry()">Cancel</button>
+    <div style="display:flex;gap:8px;">
+      <button class="mute-btn active" id="mute-btn-entry" onclick="toggleVoice()" title="Toggle voice">&#128266;</button>
+      <button class="vcog-btn" onclick="openVS()" title="Voice settings">&#9881;</button>
+      <button onclick="cancelEntry()">Cancel</button>
+    </div>
   </div>
-  <div class="scroll" id="entry-scroll" style="padding-top:12px;padding-bottom:16px;">
-    <div style="background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--info);">&#9432; Leave <strong>one</strong> player's card points blank — that player declared and receives all the others' points.</div>
-    <div id="player-blocks"></div>
-    <div class="pot-summary" id="pot-summary"></div>
-    <div class="sides-summary" id="sides-summary" style="margin-top:12px;"></div>
+  <div class="entry-tab-bar">
+    <button class="entry-tab active" id="etab-btn-enter" onclick="switchEntryTab('enter',this)">Enter</button>
+    <button class="entry-tab" id="etab-btn-review" onclick="switchEntryTab('review',this)">&#128266; Review &amp; Confirm</button>
+  </div>
+  <!-- Enter tab -->
+  <div class="entry-tab-panel active" id="etab-enter">
+    <div class="scroll" id="entry-scroll" style="padding-top:12px;padding-bottom:16px;">
+      <div style="background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--info);">&#9432; Leave <strong>one</strong> player's card points blank — that player declared and receives all the others' points.</div>
+      <div id="player-blocks"></div>
+      <div class="pot-summary" id="pot-summary"></div>
+      <div class="sides-summary" id="sides-summary" style="margin-top:12px;"></div>
+    </div>
+  </div>
+  <!-- Review & Confirm tab -->
+  <div class="entry-tab-panel" id="etab-review">
+    <div class="scroll" style="padding-top:12px;padding-bottom:16px;">
+      <button class="read-btn" onclick="speakReview()">&#128266;&nbsp; Read out again</button>
+      <div id="review-content"></div>
+    </div>
   </div>
   <div class="bottom-bar">
     <button class="btn btn-accent" onclick="recordGame()">Record game &#8594;</button>
@@ -208,7 +253,7 @@
 
 <!-- MAIN -->
 <div class="screen" id="screen-main">
-  <div class="top-bar"><h1>&#9824; Kheechnewale</h1><button onclick="resetAll()">New session</button></div>
+  <div class="top-bar"><h1>&#9824; Kheechnewale</h1><div style="display:flex;gap:8px;"><button class="mute-btn active" id="mute-btn" onclick="toggleVoice()" title="Toggle voice">&#128266;</button><button class="vcog-btn" onclick="openVS()" title="Voice settings">&#9881;</button><button onclick="resetAll()">New session</button></div></div>
   <div style="padding:12px 16px 0;flex-shrink:0;">
     <div class="game-badge" id="main-badge">Game 1</div>
   </div>
@@ -275,6 +320,207 @@ function comboScore(vals){
 // Bonuses fire at 3, 5 AND 7 within the same run; streak resets only after the 7-win bonus.
 function streakBonusAt(n){return n===3?2:n===5?3:n===7?5:0;}
 
+
+// ── Voice state ───────────────────────────────────────────
+let voiceOn=true;
+let vsRate=parseFloat(localStorage.getItem('kw_vsRate'))||0.64;
+let vsPitch=parseFloat(localStorage.getItem('kw_vsPitch'))||0.9;
+let vsVoiceName=localStorage.getItem('kw_vsVoiceName')||'Aman';
+let vsVoice=null;
+
+function toggleVoice(){
+  voiceOn=!voiceOn;
+  ['mute-btn','mute-btn-entry'].forEach(id=>{
+    const b=document.getElementById(id);if(!b)return;
+    b.innerHTML=voiceOn?'&#128266;':'&#128263;';
+    b.classList.toggle('active',voiceOn);
+  });
+  if(!voiceOn&&window.speechSynthesis)window.speechSynthesis.cancel();
+}
+
+function speak(text){
+  if(!voiceOn||!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.rate=vsRate;u.pitch=vsPitch;
+  if(vsVoice)u.voice=vsVoice;
+  window.speechSynthesis.speak(u);
+}
+
+// ── Voice settings sheet ──────────────────────────────────
+function openVS(){
+  populateVoices();
+  document.getElementById('vs-overlay').style.display='block';
+  document.getElementById('vs-sheet').style.display='block';
+}
+function closeVS(){
+  onVS();
+  // Always persist all three settings to localStorage
+  localStorage.setItem('kw_vsRate', vsRate);
+  localStorage.setItem('kw_vsPitch', vsPitch);
+  localStorage.setItem('kw_vsVoiceName', vsVoiceName);
+  document.getElementById('vs-overlay').style.display='none';
+  document.getElementById('vs-sheet').style.display='none';
+}
+function onVS(){
+  vsRate=parseFloat(document.getElementById('vs-rate').value);
+  vsPitch=parseFloat(document.getElementById('vs-pitch').value);
+  document.getElementById('vs-rate-val').textContent=vsRate.toFixed(2);
+  document.getElementById('vs-pitch-val').textContent=vsPitch.toFixed(1);
+  const sel=document.getElementById('vs-voice');
+  const voices=window.speechSynthesis.getVoices();
+  if(voices.length&&sel.selectedIndex>=0){
+    vsVoice=voices[sel.selectedIndex]||null;
+    if(vsVoice)vsVoiceName=vsVoice.name;
+  }
+}
+function populateVoices(){
+  const sel=document.getElementById('vs-voice');
+  const voices=window.speechSynthesis.getVoices();
+  if(!voices.length){setTimeout(populateVoices,200);return;}
+  sel.innerHTML=voices.map((v,i)=>`<option value="${i}">${v.name} (${v.lang})</option>`).join('');
+  const idx=voices.findIndex(v=>v.name===vsVoiceName);
+  if(idx>=0){sel.selectedIndex=idx;vsVoice=voices[idx];}
+  // Restore sliders to current saved values
+  document.getElementById('vs-rate').value=vsRate;
+  document.getElementById('vs-rate-val').textContent=vsRate.toFixed(2);
+  document.getElementById('vs-pitch').value=vsPitch;
+  document.getElementById('vs-pitch-val').textContent=vsPitch.toFixed(1);
+}
+function initVoice(){
+  // Resolve vsVoiceName → vsVoice object at startup so speak() uses correct voice immediately
+  const voices=window.speechSynthesis.getVoices();
+  if(!voices.length){setTimeout(initVoice,150);return;}
+  const idx=voices.findIndex(v=>v.name===vsVoiceName);
+  if(idx>=0)vsVoice=voices[idx];
+}
+function testVS(){
+  onVS();
+  speak('This is a test. Gopal declared. Raj showed a Four-Carder. Priya showed Tanala.');
+}
+function resetVS(){
+  vsRate=0.64;vsPitch=0.9;vsVoiceName='Aman';vsVoice=null;
+  document.getElementById('vs-rate').value=0.64;
+  document.getElementById('vs-rate-val').textContent='0.64';
+  document.getElementById('vs-pitch').value=0.9;
+  document.getElementById('vs-pitch-val').textContent='0.9';
+  const voices=window.speechSynthesis.getVoices();
+  const sel=document.getElementById('vs-voice');
+  const idx=voices.findIndex(v=>v.name==='Aman');
+  if(idx>=0){sel.selectedIndex=idx;vsVoice=voices[idx];}
+  // Save defaults to localStorage so they persist on next load
+  localStorage.setItem('kw_vsRate',0.64);
+  localStorage.setItem('kw_vsPitch',0.9);
+  localStorage.setItem('kw_vsVoiceName','Aman');
+}
+if(window.speechSynthesis){
+  window.speechSynthesis.onvoiceschanged=initVoice;
+  initVoice();// pre-load voices
+}
+
+// ── Entry tabs ────────────────────────────────────────────
+function switchEntryTab(name,el){
+  document.querySelectorAll('.entry-tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.entry-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('etab-'+name).classList.add('active');
+  el.classList.add('active');
+  if(name==='review'){buildReview();speakReview();}
+}
+
+// ── Build side description text for a player ─────────────
+function sideSpeakText(p){
+  const parts=[];
+  COMBOS.forEach(c=>{
+    if(document.getElementById('combo_'+p+'_'+c.id)?.checked)parts.push(c.label);
+  });
+  const pap=getPapVal(p),tap=getTapVal(p);
+  if(pap>0)parts.push('Paplu'+(pap>1?' times '+pap:''));
+  if(tap>0)parts.push('Taplu'+(tap>1?' times '+tap:''));
+  return parts;
+}
+
+// ── Preview calculation (gameplay + sides) ────────────────
+function _calcPreview(){
+  const declarer=inferDeclarer();
+  if(!declarer)return null;
+  let gpWin=0;const gpScores={};
+  players.forEach(p=>{if(p!==declarer){const v=parseInt(document.getElementById('card_'+p)?.value)||0;gpScores[p]=-v;gpWin+=v;}});
+  gpScores[declarer]=+gpWin;
+  const rawSide={};players.forEach(p=>rawSide[p]=getSideRaw(p));
+  const totalSideRaw=players.reduce((s,p)=>s+rawSide[p],0);
+  const n=players.length;
+  const sideNet={};players.forEach(p=>{sideNet[p]=rawSide[p]*n-totalSideRaw;});
+  const ns=(streaks[declarer]||0)+1;
+  const previewBonus=streakBonusAt(ns);
+  return{declarer,gpScores,sideNet,ns,previewBonus};
+}
+
+// ── Build Review tab visual ───────────────────────────────
+function buildReview(){
+  const rc=document.getElementById('review-content');if(!rc)return;
+  const d=_calcPreview();
+  if(!d){rc.innerHTML='<div class="review-sec"><p style="color:var(--muted);font-size:14px;line-height:1.6;">Leave exactly one card points field blank to preview.</p></div>';return;}
+  const{declarer,gpScores,sideNet,ns,previewBonus}=d;
+  let out='';
+  // Declarer
+  out+=`<div class="review-sec"><div class="review-title">Declarer</div><div style="font-size:19px;font-weight:600;color:var(--success);">&#10003; ${declarer}</div></div>`;
+  // Sides shown
+  const sideHolders=players.filter(p=>sideSpeakText(p).length>0);
+  if(sideHolders.length){
+    out+='<div class="review-sec"><div class="review-title">Sides shown</div>';
+    sideHolders.forEach(p=>{
+      const parts=sideSpeakText(p);
+      out+=`<div class="review-row"><span>${p}</span><span style="font-size:12px;color:var(--gold);text-align:right;max-width:55%;">${parts.join(', ')}</span></div>`;
+    });
+    out+='</div>';
+  } else {
+    out+='<div class="review-sec"><div class="review-title">Sides shown</div><div style="color:var(--muted);font-size:13px;">No sides this hand</div></div>';
+  }
+  // Gameplay points
+  out+='<div class="review-sec"><div class="review-title">Gameplay points</div>';
+  [...players].sort((a,b)=>gpScores[b]-gpScores[a]).forEach(p=>{
+    const v=gpScores[p];
+    out+=`<div class="review-row"><span>${p}</span><span class="review-pts ${v>0?'col-grn':'col-red'}">${v>0?'+'+v:v}</span></div>`;
+  });
+  out+='</div>';
+  // Side net
+  if(players.some(p=>sideNet[p]!==0)){
+    out+='<div class="review-sec"><div class="review-title">Side points (net)</div>';
+    [...players].sort((a,b)=>sideNet[b]-sideNet[a]).forEach(p=>{
+      const v=sideNet[p];
+      out+=`<div class="review-row"><span>${p}</span><span class="review-pts ${v>0?'col-grn':v<0?'col-red':''}">${v>0?'+'+v:v}</span></div>`;
+    });
+    out+='</div>';
+  }
+  // Streak
+  if(previewBonus>0){
+    out+=`<div class="review-sec" style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);">
+      <div class="review-title" style="color:var(--gold);">&#9733; Win streak bonus</div>
+      <div style="font-size:14px;">${declarer} — ${ns} wins in a row</div>
+      <div style="font-size:13px;color:var(--gold);margin-top:6px;">+${previewBonus} pts per loser</div>
+    </div>`;
+  }
+  rc.innerHTML=out;
+}
+
+// ── Speak: declarer + sides only (no points) ─────────────
+function speakReview(){
+  const declarer=inferDeclarer();
+  if(!declarer){speak('Leave exactly one card points field blank to preview.');return;}
+  let ann=`${declarer} declared. `;
+  const sideHolders=players.filter(p=>sideSpeakText(p).length>0);
+  if(sideHolders.length){
+    sideHolders.forEach(p=>{
+      const parts=sideSpeakText(p);
+      const last=parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0];
+      ann+=`${p} shows ${last}. `;
+    });
+  } else {
+    ann+='No sides this hand.';
+  }
+  speak(ann);
+}
+
 // Checkbox helper
 function getCheck(id){return !!document.getElementById(id)?.checked;}
 
@@ -337,6 +583,10 @@ function showEntryScreen(){
   document.getElementById('pot-summary').style.display='none';
   const ss=document.getElementById('sides-summary');if(ss){ss.style.display='none';ss.innerHTML='';}
   document.getElementById('entry-scroll').scrollTop=0;
+  document.querySelectorAll('.entry-tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.entry-tab').forEach(t=>t.classList.remove('active'));
+  const _ep=document.getElementById('etab-enter');if(_ep)_ep.classList.add('active');
+  const _et=document.getElementById('etab-btn-enter');if(_et)_et.classList.add('active');
   showScreen('screen-entry');
 }
 
@@ -573,6 +823,7 @@ function recordGame(){
     if(sw===7)streaks[selectedWinner]=0; // reset only after 7-win milestone
   }
 
+
   res.date=sessionDate;
   gameHistory.unshift(res);
   gameCount++;
@@ -700,5 +951,31 @@ function resetAll(){
   showScreen('screen-setup');
 }
 </script>
+
+<!-- Voice settings sheet -->
+<div id="vs-overlay" onclick="closeVS()"></div>
+<div id="vs-sheet">
+  <div class="vs-title">&#127897; Voice settings</div>
+  <div class="vs-row">
+    <div class="vs-label"><span>Speed</span><span id="vs-rate-val">0.64</span></div>
+    <input type="range" id="vs-rate" min="0.4" max="1.4" step="0.02" value="0.64" oninput="onVS()">
+  </div>
+  <div class="vs-row">
+    <div class="vs-label"><span>Pitch</span><span id="vs-pitch-val">0.9</span></div>
+    <input type="range" id="vs-pitch" min="0.5" max="2.0" step="0.1" value="0.9" oninput="onVS()">
+  </div>
+  <div class="vs-row">
+    <div class="vs-label"><span>Voice</span></div>
+    <select class="vs-select" id="vs-voice" onchange="onVS()"></select>
+  </div>
+  <div class="vs-btns">
+    <button class="vs-test" onclick="testVS()">&#9654; Test</button>
+    <button class="vs-done" onclick="closeVS()">Save</button>
+  </div>
+  <div style="text-align:center;margin-top:14px;">
+    <button onclick="resetVS()" style="background:none;border:none;color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;text-decoration:underline;">Reset to defaults</button>
+  </div>
+</div>
+
 </body>
 </html>
