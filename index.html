@@ -179,7 +179,6 @@
     <div class="sec">
       <div class="sec-title">Players</div>
       <div class="name-grid" id="name-grid"></div>
-      <button onclick="addSetupPlayer()" style="display:block;width:100%;margin-top:10px;padding:10px;border-radius:10px;border:1px dashed rgba(255,255,255,0.2);background:none;color:var(--muted);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Add player</button>
     </div>
     <div class="sec">
       <div class="sec-title">Scoring tracks</div>
@@ -210,6 +209,9 @@
       <div class="ref-row"><span>7 wins in a row</span><span>5 pts per loser</span></div>
       <p class="note">Bonuses fire at 3, 5, and 7 wins within the same run — all three can be earned in one streak. Streak resets only after the 7-win bonus or on any loss. Each loser pays the bonus; winner collects from all.</p>
     </div>
+  </div>
+  <div style="flex-shrink:0;padding:8px 16px 0;">
+    <button onclick="addSetupPlayer()" style="display:block;width:100%;padding:11px;border-radius:12px;border:1px dashed rgba(255,255,255,0.25);background:none;color:var(--muted);font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Add player</button>
   </div>
   <div class="bottom-bar">
     <button class="btn btn-accent" onclick="startSession()">Start session</button>
@@ -580,7 +582,9 @@ function addSetupPlayer(){
   const wrap=document.createElement('div');wrap.className='name-wrap';
   wrap.innerHTML=`<label>Player ${setupCount}</label><input type="text" placeholder="Name" id="pname${setupCount}" autocomplete="off"/>`;
   g.appendChild(wrap);
-  document.getElementById('pname'+setupCount).focus();
+  const inp=document.getElementById('pname'+setupCount);
+  inp.focus();
+  inp.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 initSetupGrid();
 
