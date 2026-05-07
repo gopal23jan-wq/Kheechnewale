@@ -500,8 +500,8 @@ function buildReview(){
   } else {
     out+='<div class="review-sec"><div class="review-title">Sides shown</div><div style="color:var(--muted);font-size:13px;">No sides this hand</div></div>';
   }
-  // Gameplay points
-  out+='<div class="review-sec"><div class="review-title">Gameplay points</div>';
+  // Game points
+  out+='<div class="review-sec"><div class="review-title">Game points</div>';
   [...players].sort((a,b)=>gpScores[b]-gpScores[a]).forEach(p=>{
     const v=gpScores[p];
     out+=`<div class="review-row"><span>${p}</span><span class="review-pts ${v>0?'col-grn':'col-red'}">${v>0?'+'+v:v}</span></div>`;
@@ -888,7 +888,7 @@ function renderLeaderboard(last){
   const allLb=[...players,...formerPlayers];
   const gpSorted=[...allLb].sort((a,b)=>gpTotals[b]-gpTotals[a]);
   document.getElementById('lb-gp').innerHTML=
-    `<div class="lb-hdr"><span style="flex:1;padding-left:30px;">Player</span><span>GP pts</span></div>`+
+    `<div class="lb-hdr"><span style="flex:1;padding-left:30px;">Player</span><span>Game pts</span></div>`+
     gpSorted.map((p,i)=>{
       const top=i===0&&players.includes(p);
       const isFormer=formerPlayers.includes(p);
@@ -981,7 +981,7 @@ function renderHistory(){
     return `<div class="hist-item">
       <div class="hist-meta">Game ${g.game}${g.date?' · '+g.date:''}</div>
       <div class="hist-winner">&#10003; ${g.winner} declared</div>
-      <div class="hist-tag">Gameplay</div>
+      <div class="hist-tag">Game</div>
       <div class="hist-detail">${gpWinner} &nbsp;|&nbsp; Losers: ${gpLosers}</div>
       ${sideBlock}
     </div>`;
@@ -1010,7 +1010,7 @@ function printLeaderboard(){
   const thStyle=`padding:8px 12px;border-bottom:2px solid #333;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;color:#555;`;
   const tdStyle=`padding:9px 12px;border-bottom:1px solid #e0e0e0;font-size:15px;`;
   const gpTable=`<table style="${tableStyle}">
-    <thead><tr><th style="${thStyle}">Player</th><th style="${thStyle}text-align:right;">Gameplay pts</th></tr></thead>
+    <thead><tr><th style="${thStyle}">Player</th><th style="${thStyle}text-align:right;">Game pts</th></tr></thead>
     <tbody>${gpSorted.map(p=>row(p,gpTotals[p]||0)).join('')}</tbody>
   </table>`;
   const sideTable=`<table style="${tableStyle}">
@@ -1018,7 +1018,7 @@ function printLeaderboard(){
     <tbody>${sideSorted.map(p=>row(p,sideTotals[p]||0)).join('')}</tbody>
   </table>`;
   const combTable=`<table style="${tableStyle}">
-    <thead><tr><th style="${thStyle}">Player</th><th style="${thStyle}text-align:right;">GP</th><th style="${thStyle}text-align:right;">Side</th><th style="${thStyle}text-align:right;">Total</th></tr></thead>
+    <thead><tr><th style="${thStyle}">Player</th><th style="${thStyle}text-align:right;">Game</th><th style="${thStyle}text-align:right;">Side</th><th style="${thStyle}text-align:right;">Total</th></tr></thead>
     <tbody>${combSorted.map(p=>{
       const gv=gpTotals[p]||0,sv=sideTotals[p]||0,tv=combined[p];
       const isFormer=formerPlayers.includes(p);
@@ -1045,7 +1045,7 @@ function printLeaderboard(){
     <h1>&#9824; Kheechnewale</h1>
     <div class="sub">${badge}</div>
     <h2>Combined standings</h2>${combTable}
-    <h2>Gameplay</h2>${gpTable}
+    <h2>Game</h2>${gpTable}
     <h2>Side</h2>${sideTable}
     <button onclick="window.print()" style="padding:10px 24px;font-size:15px;cursor:pointer;border:none;background:#c0392b;color:#fff;border-radius:8px;">&#128196; Save as PDF</button>
   </body></html>`);
