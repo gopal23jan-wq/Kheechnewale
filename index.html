@@ -178,14 +178,8 @@
   <div class="scroll">
     <div class="sec">
       <div class="sec-title">Players</div>
-      <div class="name-grid" id="name-grid">
-      <div class="name-wrap"><label>Player 1</label><input type="text" placeholder="Name" id="pname1" autocomplete="off"/></div>
-      <div class="name-wrap"><label>Player 2</label><input type="text" placeholder="Name" id="pname2" autocomplete="off"/></div>
-      <div class="name-wrap"><label>Player 3</label><input type="text" placeholder="Name" id="pname3" autocomplete="off"/></div>
-      <div class="name-wrap"><label>Player 4</label><input type="text" placeholder="Name" id="pname4" autocomplete="off"/></div>
-      <div class="name-wrap"><label>Player 5</label><input type="text" placeholder="Name" id="pname5" autocomplete="off"/></div>
-      <div class="name-wrap"><label>Player 6</label><input type="text" placeholder="Name" id="pname6" autocomplete="off"/></div>
-    </div>
+      <div class="name-grid" id="name-grid"></div>
+      <button onclick="addSetupPlayer()" style="display:block;width:100%;margin-top:10px;padding:10px;border-radius:10px;border:1px dashed rgba(255,255,255,0.2);background:none;color:var(--muted);font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">+ Add player</button>
     </div>
     <div class="sec">
       <div class="sec-title">Scoring tracks</div>
@@ -574,15 +568,25 @@ function switchLbTab(name,el){
   el.classList.add('active');
 }
 
-(function(){
+let setupCount=6;
+function initSetupGrid(){
   const g=document.getElementById('name-grid');g.innerHTML='';
-  for(let i=1;i<=6;i++)
+  for(let i=1;i<=setupCount;i++)
     g.innerHTML+=`<div class="name-wrap"><label>Player ${i}</label><input type="text" placeholder="Name" id="pname${i}" autocomplete="off"/></div>`;
-})();
+}
+function addSetupPlayer(){
+  setupCount++;
+  const g=document.getElementById('name-grid');
+  const wrap=document.createElement('div');wrap.className='name-wrap';
+  wrap.innerHTML=`<label>Player ${setupCount}</label><input type="text" placeholder="Name" id="pname${setupCount}" autocomplete="off"/>`;
+  g.appendChild(wrap);
+  document.getElementById('pname'+setupCount).focus();
+}
+initSetupGrid();
 
 function startSession(){
   players=[];
-  for(let i=1;i<=6;i++){const v=(document.getElementById('pname'+i).value||'').trim();if(v)players.push(v);}
+  for(let i=1;i<=setupCount;i++){const v=(document.getElementById('pname'+i)?.value||'').trim();if(v)players.push(v);}
   if(players.length<2){alert('Enter at least 2 player names.');return;}
   gpTotals={};sideTotals={};streaks={};streakLevels={};formerPlayers=[];
   players.forEach(p=>{gpTotals[p]=0;sideTotals[p]=0;streaks[p]=0;streakLevels[p]=0;});
@@ -1104,7 +1108,7 @@ function resetAll(){
   if(!confirm('Start a new session? All scores will be reset.'))return;
   players=[];formerPlayers=[];gpTotals={};sideTotals={};streaks={};streakLevels={};
   gameHistory=[];gameCount=1;selectedWinner=null;
-  for(let i=1;i<=6;i++){const el=document.getElementById('pname'+i);if(el)el.value='';}
+  setupCount=6;initSetupGrid();
   showScreen('screen-setup');
 }
 </script>
