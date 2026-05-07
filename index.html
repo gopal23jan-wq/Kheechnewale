@@ -145,6 +145,24 @@
   .vs-btns{display:flex;gap:8px;margin-top:20px;}
   .vs-test{flex:1;padding:12px;border-radius:var(--radius);border:none;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;background:var(--card);color:var(--gold);}
   .vs-done{flex:1;padding:12px;border-radius:var(--radius);border:none;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;background:var(--accent);color:#fff;}
+
+  .mgmt-btn{background:none;border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:var(--muted);font-size:13px;font-family:'DM Sans',sans-serif;padding:5px 11px;cursor:pointer;}
+  #mp-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99;}
+  #mp-sheet{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;padding:24px 20px calc(20px + var(--safe-bottom));z-index:100;border-top:1px solid rgba(255,255,255,0.1);max-height:85vh;overflow-y:auto;}
+  .mp-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;font-weight:500;}
+  .mp-player-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+  .mp-player-row:last-child{border-bottom:none;}
+  .mp-player-name{font-size:15px;}
+  .mp-player-name.former{color:var(--muted);}
+  .mp-action{border:none;border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;padding:5px 12px;cursor:pointer;font-weight:500;}
+  .mp-remove{background:rgba(233,69,96,0.15);color:var(--accent);}
+  .mp-rejoin{background:rgba(46,204,113,0.15);color:var(--success);}
+  .mp-add-row{display:flex;gap:8px;margin-top:14px;}
+  .mp-add-input{flex:1;background:var(--card);border:none;border-radius:10px;padding:10px 12px;color:var(--text);font-size:15px;font-family:'DM Sans',sans-serif;outline:none;}
+  .mp-add-input::placeholder{color:var(--muted);}
+  .mp-add-btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;}
+  .mp-done{display:block;width:100%;margin-top:16px;padding:13px;border-radius:var(--radius);border:none;font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;background:var(--accent);color:#fff;}
+  .lb-left{font-size:10px;color:var(--muted);background:rgba(255,255,255,0.07);border-radius:10px;padding:2px 7px;margin-left:4px;white-space:nowrap;flex-shrink:0;}
   .col-grn{color:var(--success);}
   .col-red{color:var(--accent);}
 </style>
@@ -253,16 +271,19 @@
 
 <!-- MAIN -->
 <div class="screen" id="screen-main">
-  <div class="top-bar"><h1>&#9824; Kheechnewale</h1><div style="display:flex;gap:8px;"><button class="mute-btn active" id="mute-btn" onclick="toggleVoice()" title="Toggle voice">&#128266;</button><button class="vcog-btn" onclick="openVS()" title="Voice settings">&#9881;</button><button onclick="resetAll()">New session</button></div></div>
+  <div class="top-bar"><h1>&#9824; Kheechnewale</h1><div style="display:flex;gap:8px;"><button class="mute-btn active" id="mute-btn" onclick="toggleVoice()" title="Toggle voice">&#128266;</button><button class="vcog-btn" onclick="openVS()" title="Voice settings">&#9881;</button><button class="mgmt-btn" onclick="openManage()" title="Add or remove players">&#128101;</button><button onclick="resetAll()">New session</button></div></div>
   <div style="padding:12px 16px 0;flex-shrink:0;">
     <div class="game-badge" id="main-badge">Game 1</div>
   </div>
   <div class="tab-content active" id="tab-scores">
     <div class="streak-banner" id="streak-banner"></div>
-    <div class="lb-tabs">
-      <button class="lb-tab active" onclick="switchLbTab('gp',this)">Gameplay</button>
-      <button class="lb-tab" onclick="switchLbTab('side',this)">Side</button>
-      <button class="lb-tab" onclick="switchLbTab('total',this)">Combined</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="lb-tabs" style="margin-bottom:0;flex:1;">
+        <button class="lb-tab active" onclick="switchLbTab('gp',this)">Game</button>
+        <button class="lb-tab" onclick="switchLbTab('side',this)">Side</button>
+        <button class="lb-tab" onclick="switchLbTab('total',this)">Combined</button>
+      </div>
+      <button onclick="printLeaderboard()" title="Save as PDF" style="background:none;border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif;padding:6px 10px;cursor:pointer;margin-left:8px;white-space:nowrap;">&#128196; PDF</button>
     </div>
     <div class="lb-view active" id="lb-gp"></div>
     <div class="lb-view" id="lb-side"></div>
@@ -533,7 +554,7 @@ function getPapVal(p){return parseInt(document.getElementById('pap_'+p+'_disp')?
 function getTapVal(p){return parseInt(document.getElementById('tap_'+p+'_disp')?.dataset.val||'0');}
 function getSideRaw(p){return comboScore(getCheckedComboVals(p))+ptScore(getPapVal(p))+ptScore(getTapVal(p));}
 
-let players=[],gpTotals={},sideTotals={},gameHistory=[],gameCount=1,selectedWinner=null;
+let players=[],formerPlayers=[],gpTotals={},sideTotals={},gameHistory=[],gameCount=1,selectedWinner=null;
 let streaks={},streakLevels={},sessionDate='';
 
 function showScreen(id){
@@ -563,7 +584,7 @@ function startSession(){
   players=[];
   for(let i=1;i<=6;i++){const v=(document.getElementById('pname'+i).value||'').trim();if(v)players.push(v);}
   if(players.length<2){alert('Enter at least 2 player names.');return;}
-  gpTotals={};sideTotals={};streaks={};streakLevels={};
+  gpTotals={};sideTotals={};streaks={};streakLevels={};formerPlayers=[];
   players.forEach(p=>{gpTotals[p]=0;sideTotals[p]=0;streaks[p]=0;streakLevels[p]=0;});
   gameHistory=[];gameCount=1;selectedWinner=null;
   sessionDate=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
@@ -775,7 +796,8 @@ function recordGame(){
     game:gameCount,winner:selectedWinner,
     gpScores:{},sideScores:{},
     comboDetails:{},ptDetails:{},
-    streakBonus:0,streakAt:0
+    streakBonus:0,streakAt:0,
+    gamePlayers:[...players]  // snapshot of active players at time of recording
   };
 
   // ── Gameplay ──────────────────────────────────────────────
@@ -848,44 +870,51 @@ function renderLeaderboard(last){
     banner.innerHTML=`&#9733; ${last.winner} hit ${last.streakAt} wins in a row &mdash; +${last.streakBonus} pts per loser streak bonus!`;
   } else if(last) banner.style.display='none';
 
-  const gpSorted=[...players].sort((a,b)=>gpTotals[b]-gpTotals[a]);
+  const allLb=[...players,...formerPlayers];
+  const gpSorted=[...allLb].sort((a,b)=>gpTotals[b]-gpTotals[a]);
   document.getElementById('lb-gp').innerHTML=
     `<div class="lb-hdr"><span style="flex:1;padding-left:30px;">Player</span><span>GP pts</span></div>`+
     gpSorted.map((p,i)=>{
-      const top=i===0;
+      const top=i===0&&players.includes(p);
+      const isFormer=formerPlayers.includes(p);
       const s=streaks[p];
-      const strk=s>0?`<span class="lb-streak">&#128293; ${s}</span>`:'';
+      const strk=(!isFormer&&s>0)?`<span class="lb-streak">&#128293; ${s}</span>`:'';
+      const leftBadge=isFormer?`<span class="lb-left">left</span>`:'';
       const v=gpTotals[p];
-      return `<div class="lb-row">
+      return `<div class="lb-row" style="${isFormer?'opacity:0.5':''}">
         <div class="lb-rank${top?' top':''}">${i+1}</div>
-        <div class="lb-name${top?' top':''}">${p}</div>${strk}
+        <div class="lb-name${top?' top':''}">${p}</div>${leftBadge}${strk}
         <div class="lb-col${top?' top':''}${colClass(v)}">${v>0?'+'+v:v}</div>
       </div>`;
     }).join('');
 
-  const sideSorted=[...players].sort((a,b)=>sideTotals[b]-sideTotals[a]);
+  const sideSorted=[...allLb].sort((a,b)=>sideTotals[b]-sideTotals[a]);
   document.getElementById('lb-side').innerHTML=
     `<div class="lb-hdr"><span style="flex:1;padding-left:30px;">Player</span><span>Side pts</span></div>`+
     sideSorted.map((p,i)=>{
-      const top=i===0;
+      const top=i===0&&players.includes(p);
+      const isFormer=formerPlayers.includes(p);
+      const leftBadge=isFormer?`<span class="lb-left">left</span>`:'';
       const v=sideTotals[p];
-      return `<div class="lb-row">
+      return `<div class="lb-row" style="${isFormer?'opacity:0.5':''}">
         <div class="lb-rank${top?' top':''}">${i+1}</div>
-        <div class="lb-name${top?' top':''}">${p}</div>
+        <div class="lb-name${top?' top':''}">${p}</div>${leftBadge}
         <div class="lb-col${top?' top':''}${colClass(v)}">${v>0?'+'+v:v}</div>
       </div>`;
     }).join('');
 
-  const combined={};players.forEach(p=>combined[p]=gpTotals[p]+sideTotals[p]);
-  const combSorted=[...players].sort((a,b)=>combined[b]-combined[a]);
+  const combined={};allLb.forEach(p=>combined[p]=gpTotals[p]+sideTotals[p]);
+  const combSorted=[...allLb].sort((a,b)=>combined[b]-combined[a]);
   document.getElementById('lb-total').innerHTML=
     `<div class="lb-hdr"><span style="flex:1;padding-left:30px;">Player</span><span style="width:44px;text-align:right;">GP</span><span style="width:44px;text-align:right;margin-left:4px;">Side</span><span style="width:52px;text-align:right;margin-left:4px;">Total</span></div>`+
     combSorted.map((p,i)=>{
-      const top=i===0;
+      const top=i===0&&players.includes(p);
+      const isFormer=formerPlayers.includes(p);
+      const leftBadge=isFormer?`<span class="lb-left">left</span>`:'';
       const gv=gpTotals[p],sv=sideTotals[p],tv=combined[p];
-      return `<div class="lb-row">
+      return `<div class="lb-row" style="${isFormer?'opacity:0.5':''}">
         <div class="lb-rank${top?' top':''}">${i+1}</div>
-        <div class="lb-name${top?' top':''}">${p}</div>
+        <div class="lb-name${top?' top':''}">${p}</div>${leftBadge}
         <div class="lb-col muted" style="width:44px;">${gv>0?'+'+gv:gv}</div>
         <div class="lb-col muted" style="width:44px;margin-left:4px;">${sv>0?'+'+sv:sv}</div>
         <div class="lb-col${top?' top':''}${colClass(tv)}" style="width:52px;margin-left:4px;">${tv>0?'+'+tv:tv}</div>
@@ -897,12 +926,13 @@ function renderHistory(){
   const wrap=document.getElementById('history');
   if(!gameHistory.length){wrap.innerHTML='<div class="empty">No games yet</div>';return;}
   wrap.innerHTML=gameHistory.map(g=>{
-    const losers=players.filter(p=>p!==g.winner);
+    const gp=g.gamePlayers||players; // use snapshot, fall back to current
+    const losers=gp.filter(p=>p!==g.winner);
     const gpLosers=losers.map(p=>`<span class="col-red">${p}: ${g.gpScores[p]}</span>`).join(' · ');
     const gpWinner=`<span class="col-grn">${g.winner}: +${g.gpScores[g.winner]}</span>`;
     // Build combo map: group same-label combos across players, preserving pts
     const histComboMap={};
-    players.forEach(p=>{
+    gp.forEach(p=>{
       const cd=g.comboDetails[p],pd=g.ptDetails[p];
       if(cd.held&&cd.held.length>0){
         cd.held.forEach(h=>{
@@ -943,14 +973,161 @@ function renderHistory(){
   }).join('');
 }
 
+
+// ── Print / PDF leaderboard ───────────────────────────────
+function printLeaderboard(){
+  const allLb=[...players,...formerPlayers];
+  const combined={};allLb.forEach(p=>combined[p]=(gpTotals[p]||0)+(sideTotals[p]||0));
+  const gpSorted=[...allLb].sort((a,b)=>gpTotals[b]-gpTotals[a]);
+  const sideSorted=[...allLb].sort((a,b)=>sideTotals[b]-sideTotals[a]);
+  const combSorted=[...allLb].sort((a,b)=>combined[b]-combined[a]);
+  const badge=document.getElementById('main-badge')?.textContent||sessionDate;
+  function pts(v){return v>0?'+'+v:String(v);}
+  function row(p,val,extra=''){
+    const isFormer=formerPlayers.includes(p);
+    return `<tr style="${isFormer?'opacity:0.5':''}">
+      <td>${p}${isFormer?' <span style="font-size:10px;color:#888;">(left)</span>':''}</td>
+      <td style="text-align:right;font-weight:600;color:${val>0?'#2a9d5c':val<0?'#c0392b':'#333'}">${pts(val)}</td>
+      ${extra}
+    </tr>`;
+  }
+  const tableStyle=`border-collapse:collapse;width:100%;margin-bottom:32px;font-family:Georgia,serif;`;
+  const thStyle=`padding:8px 12px;border-bottom:2px solid #333;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;color:#555;`;
+  const tdStyle=`padding:9px 12px;border-bottom:1px solid #e0e0e0;font-size:15px;`;
+  const gpTable=`<table style="${tableStyle}">
+    <thead><tr><th style="${thStyle}">Player</th><th style="${thStyle}text-align:right;">Gameplay pts</th></tr></thead>
+    <tbody>${gpSorted.map(p=>row(p,gpTotals[p]||0)).join('')}</tbody>
+  </table>`;
+  const sideTable=`<table style="${tableStyle}">
+    <thead><tr><th style="${thStyle}">Player</th><th style="${thStyle}text-align:right;">Side pts</th></tr></thead>
+    <tbody>${sideSorted.map(p=>row(p,sideTotals[p]||0)).join('')}</tbody>
+  </table>`;
+  const combTable=`<table style="${tableStyle}">
+    <thead><tr><th style="${thStyle}">Player</th><th style="${thStyle}text-align:right;">GP</th><th style="${thStyle}text-align:right;">Side</th><th style="${thStyle}text-align:right;">Total</th></tr></thead>
+    <tbody>${combSorted.map(p=>{
+      const gv=gpTotals[p]||0,sv=sideTotals[p]||0,tv=combined[p];
+      const isFormer=formerPlayers.includes(p);
+      return `<tr style="${isFormer?'opacity:0.5':''}">
+        <td style="${tdStyle}">${p}${isFormer?' <span style="font-size:10px;color:#888;">(left)</span>':''}</td>
+        <td style="${tdStyle}text-align:right;color:#888;">${pts(gv)}</td>
+        <td style="${tdStyle}text-align:right;color:#888;">${pts(sv)}</td>
+        <td style="${tdStyle}text-align:right;font-weight:700;font-size:16px;color:${tv>0?'#2a9d5c':tv<0?'#c0392b':'#333'}">${pts(tv)}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+    <title>Kheechnewale — ${badge}</title>
+    <style>
+      body{font-family:Georgia,serif;color:#222;padding:40px;max-width:600px;margin:0 auto;}
+      h1{font-size:26px;margin-bottom:4px;letter-spacing:-0.5px;}
+      .sub{font-size:14px;color:#666;margin-bottom:36px;}
+      h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:10px;border-bottom:1px solid #ddd;padding-bottom:6px;}
+      td{padding:9px 12px;border-bottom:1px solid #e0e0e0;font-size:15px;}
+      @media print{body{padding:20px;}button{display:none;}}
+    </style>
+  </head><body>
+    <h1>&#9824; Kheechnewale</h1>
+    <div class="sub">${badge}</div>
+    <h2>Combined standings</h2>${combTable}
+    <h2>Gameplay</h2>${gpTable}
+    <h2>Side</h2>${sideTable}
+    <button onclick="window.print()" style="padding:10px 24px;font-size:15px;cursor:pointer;border:none;background:#c0392b;color:#fff;border-radius:8px;">&#128196; Save as PDF</button>
+  </body></html>`);
+  win.document.close();
+}
+
+// ── Manage players ────────────────────────────────────────
+function openManage(){
+  renderManageSheet();
+  document.getElementById('mp-overlay').style.display='block';
+  document.getElementById('mp-sheet').style.display='block';
+  document.getElementById('mp-new-name').value='';
+}
+function closeManage(){
+  document.getElementById('mp-overlay').style.display='none';
+  document.getElementById('mp-sheet').style.display='none';
+  renderLeaderboard(null);
+  renderHistory();
+}
+function renderManageSheet(){
+  // Active players
+  const activeList=document.getElementById('mp-active-list');
+  activeList.innerHTML=players.map(p=>`
+    <div class="mp-player-row">
+      <span class="mp-player-name">${p}</span>
+      <button class="mp-action mp-remove" onclick="removePlayer('${p}')">Remove</button>
+    </div>`).join('');
+  // Former players
+  const formerSec=document.getElementById('mp-former-section');
+  const formerList=document.getElementById('mp-former-list');
+  if(formerPlayers.length){
+    formerSec.style.display='block';
+    formerList.innerHTML=formerPlayers.map(p=>`
+      <div class="mp-player-row">
+        <span class="mp-player-name former">${p}</span>
+        <button class="mp-action mp-rejoin" onclick="rejoinPlayer('${p}')">Rejoin</button>
+      </div>`).join('');
+  } else {
+    formerSec.style.display='none';
+  }
+}
+function removePlayer(name){
+  if(players.length<=2){alert('A session needs at least 2 active players.');return;}
+  players=players.filter(p=>p!==name);
+  streaks[name]=0; // reset streak on leaving
+  formerPlayers.push(name);
+  renderManageSheet();
+}
+function rejoinPlayer(name){
+  formerPlayers=formerPlayers.filter(p=>p!==name);
+  players.push(name);
+  // scores and history are preserved; streak starts fresh
+  streaks[name]=0;
+  renderManageSheet();
+}
+function addPlayer(){
+  const input=document.getElementById('mp-new-name');
+  const name=(input.value||'').trim();
+  if(!name){alert('Please enter a name.');return;}
+  const allKnown=[...players,...formerPlayers];
+  if(allKnown.some(p=>p.toLowerCase()===name.toLowerCase())){
+    alert(name+' is already in this session.');return;
+  }
+  players.push(name);
+  gpTotals[name]=0;sideTotals[name]=0;streaks[name]=0;streakLevels[name]=0;
+  input.value='';
+  renderManageSheet();
+}
+
 function resetAll(){
   if(!confirm('Start a new session? All scores will be reset.'))return;
-  players=[];gpTotals={};sideTotals={};streaks={};streakLevels={};
+  players=[];formerPlayers=[];gpTotals={};sideTotals={};streaks={};streakLevels={};
   gameHistory=[];gameCount=1;selectedWinner=null;
   for(let i=1;i<=6;i++){const el=document.getElementById('pname'+i);if(el)el.value='';}
   showScreen('screen-setup');
 }
 </script>
+
+
+<!-- Manage players sheet -->
+<div id="mp-overlay" onclick="closeManage()"></div>
+<div id="mp-sheet">
+  <div class="mp-title">&#128101; Manage players</div>
+  <div id="mp-active-section">
+    <div class="mp-title" style="margin-bottom:6px;">Active</div>
+    <div id="mp-active-list"></div>
+  </div>
+  <div class="mp-add-row">
+    <input class="mp-add-input" id="mp-new-name" type="text" placeholder="New player name" autocomplete="off" maxlength="20"/>
+    <button class="mp-add-btn" onclick="addPlayer()">+ Add</button>
+  </div>
+  <div id="mp-former-section" style="display:none;margin-top:16px;">
+    <div class="mp-title" style="margin-bottom:6px;">Left this session</div>
+    <div id="mp-former-list"></div>
+  </div>
+  <button class="mp-done" onclick="closeManage()">Done</button>
+</div>
 
 <!-- Voice settings sheet -->
 <div id="vs-overlay" onclick="closeVS()"></div>
