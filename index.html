@@ -639,7 +639,7 @@ function getPapVal(p){return parseInt(document.getElementById('pap_'+p+'_disp')?
 function getTapVal(p){return parseInt(document.getElementById('tap_'+p+'_disp')?.dataset.val||'0');}
 function getSideRaw(p){return comboScore(getCheckedComboVals(p))+ptScore(getPapVal(p))+ptScore(getTapVal(p));}
 
-let players=[],formerPlayers=[],gpTotals={},sideTotals={},gameHistory=[],gameCount=1,selectedWinner=null,dealerIndex=0;
+let players=[],formerPlayers=[],gpTotals={},sideTotals={},gameHistory=[],gameCount=1,selectedWinner=null,dealerIndex=0,sessionId=null;
 let streaks={},streakLevels={},sessionDate='';
 
 function showScreen(id){
@@ -692,7 +692,8 @@ function startSession(){
   gpTotals={};sideTotals={};streaks={};streakLevels={};formerPlayers=[];
   players.forEach(p=>{gpTotals[p]=0;sideTotals[p]=0;streaks[p]=0;streakLevels[p]=0;});
   gameHistory=[];gameCount=1;selectedWinner=null;
-  dealerIndex=players.length-1; // Game 1 dealer = last player; advances to index 0 after Game 1
+  dealerIndex=players.length-1;
+  sessionId='s_'+Date.now();
   sessionDate=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   showEntryScreen();
 }
@@ -1215,17 +1216,18 @@ function addPlayer(){
 }
 
 function saveSessionToday(){
-  // Save current session totals to localStorage under today's date
   const allPlayers=[...players,...formerPlayers];
-  if(!allPlayers.length)return;
+  if(!allPlayers.length||!sessionId)return;
   const key='kw_day_'+sessionDate;
   let dayData=[];
   try{const raw=localStorage.getItem(key);if(raw)dayData=JSON.parse(raw);}catch(e){}
   const sessionTotals={};
-  allPlayers.forEach(p=>{
-    sessionTotals[p]=(gpTotals[p]||0)+(sideTotals[p]||0);
-  });
-  dayData.push({sessionTotals,savedAt:new Date().toISOString()});
+  allPlayers.forEach(p=>{sessionTotals[p]=(gpTotals[p]||0)+(sideTotals[p]||0);});
+  // Update existing snapshot for this session, or add new one
+  const idx=dayData.findIndex(s=>s.id===sessionId);
+  const snapshot={id:sessionId,sessionTotals,savedAt:new Date().toISOString()};
+  if(idx>=0)dayData[idx]=snapshot;
+  else dayData.push(snapshot);
   localStorage.setItem(key,JSON.stringify(dayData));
 }
 
