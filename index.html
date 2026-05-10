@@ -208,18 +208,18 @@
       <div class="sec-title">Combination points (Side)</div>
       <div class="ref-row"><span>1 combo (std)</span><span>2 pts</span></div>
       <div class="ref-row"><span>2 combos (std)</span><span>5 pts (+1 bonus)</span></div>
-      <div class="ref-row"><span>3 combos (std)</span><span>7 pts (+1 bonus)</span></div>
+      <div class="ref-row"><span>3 combos (std)</span><span>10 pts (+4 bonus)</span></div>
       <div class="ref-row"><span>3 Duplicates</span><span>2 pts (1 combo)</span></div>
       <div class="ref-row"><span>4 Duplicates</span><span>3 pts (1 combo)</span></div>
       <div class="ref-row"><span>Any combo + 4 Dup</span><span>+2 bonus (not +1)</span></div>
       <p class="note">Zero-sum: earn your own combo pts, but owe others theirs. Positives and negatives balance out.</p>
     </div>
     <div class="sec">
-      <div class="sec-title">Paplu / Taplu (Side)</div>
-      <div class="ref-row"><span>1 Paplu or Taplu</span><span>1 pt</span></div>
+      <div class="sec-title">Pupploo / Tupploo (Side)</div>
+      <div class="ref-row"><span>1 Pupploo or Tupploo</span><span>1 pt</span></div>
       <div class="ref-row"><span>2 of same</span><span>3 pts (1+1+1 bonus)</span></div>
-      <div class="ref-row"><span>3 of same (= Tanala)</span><span>5 pts + 2 pt Tanala</span></div>
-      <p class="note">Paplu = one above joker · Taplu = one below joker (same suit).</p>
+      <div class="ref-row"><span>3 Puploos/Tupploos</span><span>5 pts (no Tanala unless shown before pick)</span></div>
+      <p class="note">Pupploo = one above joker · Tupploo = one below joker (same suit).</p>
     </div>
     <div class="sec">
       <div class="sec-title">Win streak bonus (Side)</div>
@@ -338,17 +338,20 @@ const COMBOS=[
   {id:'dup4',      label:'4 Duplicates', pts:3},
 ];
 
-// Paplu/Taplu: 1→1, 2→3, 3→5
+// Pupploo/Tupploo: 1→1, 2→3, 3→5
 function ptScore(n){if(n===0)return 0;if(n===1)return 1;if(n===2)return 3;return 5;}
 
 // Combo scoring using individual point values.
-// Bonus for 2+ combos: +2 if any combo has pts>2 (i.e. 4 Duplicates is included), else +1.
-// Examples: 1 std=2, 2 std=5, 3 std=7, 3Dup alone=2, 4Dup alone=3, 3Dup+4Dup=7.
+// Bonus for 2+ combos: 3 combos = 10pts total, 2 combos = 5pts total, 1 combo = 2pts.
+// Bonus for 2 combos: +1. Bonus for 3 combos: +4 (to reach 10).
+// Special: if 4 Duplicates included, bonus for 2+ is +2 instead.
 function comboScore(vals){
   if(!vals||vals.length===0)return 0;
   const sum=vals.reduce((s,v)=>s+v,0);
   const maxVal=Math.max(...vals);
-  const bonus=vals.length>=2?(maxVal>2?2:1):0;
+  let bonus=0;
+  if(vals.length>=3){bonus=maxVal>2?5:4;}       // 3 combos: std→10, with 4Dup→sum+5
+  else if(vals.length===2){bonus=maxVal>2?2:1;}  // 2 combos: std→5, with 4Dup→sum+2
   return sum+bonus;
 }
 
@@ -377,10 +380,64 @@ function toggleVoice(){
 function speak(text){
   if(!voiceOn||!window.speechSynthesis)return;
   window.speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.rate=vsRate;u.pitch=vsPitch;
-  if(vsVoice)u.voice=vsVoice;
-  window.speechSynthesis.speak(u);
+  setTimeout(()=>{
+    const u=new SpeechSynthesisUtterance(text);
+    u.rate=vsRate;u.pitch=vsPitch;
+    const voice=resolveVoice();
+    if(voice)u.voice=voice;
+    u.onstart=()=>{
+      if(window._kwResumeTimer)clearInterval(window._kwResumeTimer);
+      window._kwResumeTimer=setInterval(()=>{
+        if(window.speechSynthesis.paused)window.speechSynthesis.resume();
+      },250);
+    };
+    u.onend=()=>{if(window._kwResumeTimer)clearInterval(window._kwResumeTimer);};
+    u.onerror=()=>{if(window._kwResumeTimer)clearInterval(window._kwResumeTimer);};
+    window.speechSynthesis.speak(u);
+  },50);
+}
+
+// Always resolve voice fresh by name to avoid Safari stale-voice bug
+function resolveVoice(){
+  if(!window.speechSynthesis)return null;
+  const voices=window.speechSynthesis.getVoices();
+  if(!voices.length)return null;
+  return voices.find(v=>v.name===vsVoiceName)||vsVoice||null;
+}
+
+// Speak a list of phrases sequentially with a pause between each
+function speakSequence(phrases,delay){
+  if(!voiceOn||!window.speechSynthesis||!phrases.length)return;
+  const gap=delay||400;
+  // Cancel cleanly then wait a beat before starting
+  window.speechSynthesis.cancel();
+  setTimeout(()=>{
+    const voice=resolveVoice(); // resolve once per sequence call
+    let index=0;
+    function next(){
+      if(index>=phrases.length)return;
+      const text=phrases[index++];
+      const u=new SpeechSynthesisUtterance(text);
+      u.rate=vsRate;u.pitch=vsPitch;
+      if(voice)u.voice=voice;
+      u.onstart=()=>{
+        if(window._kwResumeTimer)clearInterval(window._kwResumeTimer);
+        window._kwResumeTimer=setInterval(()=>{
+          if(window.speechSynthesis.paused)window.speechSynthesis.resume();
+        },250);
+      };
+      u.onend=()=>{
+        if(window._kwResumeTimer)clearInterval(window._kwResumeTimer);
+        setTimeout(next,gap);
+      };
+      u.onerror=()=>{
+        if(window._kwResumeTimer)clearInterval(window._kwResumeTimer);
+        setTimeout(next,gap);
+      };
+      window.speechSynthesis.speak(u);
+    }
+    next();
+  },300); // wait 300ms after cancel before speaking
 }
 
 // ── Voice settings sheet ──────────────────────────────────
@@ -466,12 +523,15 @@ function switchEntryTab(name,el){
 // ── Build side description text for a player ─────────────
 function sideSpeakText(p){
   const parts=[];
+  const numWords=['','','Two','Three','Four','Five'];
   COMBOS.forEach(c=>{
     if(document.getElementById('combo_'+p+'_'+c.id)?.checked)parts.push(c.label);
   });
   const pap=getPapVal(p),tap=getTapVal(p);
-  if(pap>0)parts.push('Paplu'+(pap>1?' times '+pap:''));
-  if(tap>0)parts.push('Taplu'+(tap>1?' times '+tap:''));
+  if(pap===1)parts.push('Pupploo');
+  else if(pap>1)parts.push((numWords[pap]||pap)+' Pupploos');
+  if(tap===1)parts.push('Tupploo');
+  else if(tap>1)parts.push((numWords[tap]||tap)+' Tupploos');
   return parts;
 }
 
@@ -543,18 +603,24 @@ function buildReview(){
 function speakReview(){
   const declarer=inferDeclarer();
   if(!declarer){speak('Leave exactly one card points field blank to preview.');return;}
-  let ann=`${declarer} declared. `;
+  const d=_calcPreview();
+  const winnerGp=d?d.gpScores[declarer]:0;
+  const winnerSide=d?d.sideNet[declarer]:0;
+  const winnerTotal=winnerGp+winnerSide;
+  const scoreText=winnerTotal>=0?'plus '+winnerTotal:'minus '+Math.abs(winnerTotal);
+  const phrases=[];
+  phrases.push(declarer+' declared, '+scoreText+' points.');
   const sideHolders=players.filter(p=>sideSpeakText(p).length>0);
   if(sideHolders.length){
     sideHolders.forEach(p=>{
       const parts=sideSpeakText(p);
       const last=parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0];
-      ann+=`${p} shows ${last}. `;
+      phrases.push(p+' shows '+last+'.');
     });
   } else {
-    ann+='No sides this hand.';
+    phrases.push('No sides this hand.');
   }
-  speak(ann);
+  speakSequence(phrases,350);
 }
 
 // Checkbox helper
@@ -569,7 +635,7 @@ function getPapVal(p){return parseInt(document.getElementById('pap_'+p+'_disp')?
 function getTapVal(p){return parseInt(document.getElementById('tap_'+p+'_disp')?.dataset.val||'0');}
 function getSideRaw(p){return comboScore(getCheckedComboVals(p))+ptScore(getPapVal(p))+ptScore(getTapVal(p));}
 
-let players=[],formerPlayers=[],gpTotals={},sideTotals={},gameHistory=[],gameCount=1,selectedWinner=null;
+let players=[],formerPlayers=[],gpTotals={},sideTotals={},gameHistory=[],gameCount=1,selectedWinner=null,dealerIndex=0;
 let streaks={},streakLevels={},sessionDate='';
 
 function showScreen(id){
@@ -614,6 +680,7 @@ function startSession(){
   gpTotals={};sideTotals={};streaks={};streakLevels={};formerPlayers=[];
   players.forEach(p=>{gpTotals[p]=0;sideTotals[p]=0;streaks[p]=0;streakLevels[p]=0;});
   gameHistory=[];gameCount=1;selectedWinner=null;
+  dealerIndex=players.length-1; // Game 1 dealer = last player; advances to index 0 after Game 1
   sessionDate=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   showEntryScreen();
 }
@@ -651,9 +718,9 @@ function renderBlocks(){
         <div class="divider"></div>`;
 
     const ptSection=`
-      <div class="sub-title" style="margin-top:4px;">Paplu &amp; Taplu</div>
+      <div class="sub-title" style="margin-top:4px;">Pupploo &amp; Tupploo</div>
       <div class="pt-row">
-        <div><div class="pt-label">Paplu</div><div class="pt-sub">1 above joker (same suit)</div></div>
+        <div><div class="pt-label">Pupploo</div><div class="pt-sub">1 above joker (same suit)</div></div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
           <div class="stepper">
             <button type="button" onclick="stepPT('pap_${p}',-1)">−</button>
@@ -664,7 +731,7 @@ function renderBlocks(){
         </div>
       </div>
       <div class="pt-row">
-        <div><div class="pt-label">Taplu</div><div class="pt-sub">1 below joker (same suit)</div></div>
+        <div><div class="pt-label">Tupploo</div><div class="pt-sub">1 below joker (same suit)</div></div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
           <div class="stepper">
             <button type="button" onclick="stepPT('tap_${p}',-1)">−</button>
@@ -707,21 +774,8 @@ function stepPT(key,dir){
   const pts=ptScore(v);
   const ptsEl=document.getElementById(key+'_pts');
   if(ptsEl)ptsEl.textContent=pts>0?pts+' pts':'';
-  // Auto-tick Tanala if pap=3 or tap=3
   const p=key.replace(/^(pap|tap)_/,'');
-  const papV=getPapVal(p),tapV=getTapVal(p);
-  const tanalaEl=document.getElementById('combo_'+p+'_tanala');
-  const chipEl=document.getElementById('chip_'+p+'_tanala');
-  if(tanalaEl){
-    const should=papV===3||tapV===3;
-    // Only auto-CHECK Tanala when condition is met — never forcibly uncheck it,
-    // so manually-ticked combos are not disturbed when Paplu/Taplu is adjusted.
-    if(should){
-      tanalaEl.checked=true;
-      if(chipEl)chipEl.classList.add('checked');
-    }
-    updateTally(p);
-  }
+  updateTally(p);
   updatePot();
 }
 
@@ -770,12 +824,12 @@ function updatePot(){
         comboMap[c.id].holders.push(p);
       }
     });
-    // Paplu
+    // Pupploo
     const papV=getPapVal(p);
-    if(papV>0){comboMap['paplu_'+p]={label:'Paplu ×'+papV,holders:[p],pts:ptScore(papV)};}
-    // Taplu
+    if(papV>0){comboMap['paplu_'+p]={label:'Pupploo ×'+papV,holders:[p],pts:ptScore(papV)};}
+    // Tupploo
     const tapV=getTapVal(p);
-    if(tapV>0){comboMap['taplu_'+p]={label:'Taplu ×'+tapV,holders:[p],pts:ptScore(tapV)};}
+    if(tapV>0){comboMap['taplu_'+p]={label:'Tupploo ×'+tapV,holders:[p],pts:ptScore(tapV)};}
   });
   // Streak bonus preview (shown only when declarer is unambiguous)
   let streakRow='';
@@ -881,6 +935,22 @@ function recordGame(){
   renderHistory();
   showScreen('screen-main');
   switchTab('scores',document.querySelector('.tab'));
+
+  // ── Voice announcements after recording ───────────────────
+  const announcements=[];
+
+  // 1. Streak bonus status
+  if(bonus>0){
+    announcements.push(selectedWinner+' claimed the bonus!');
+  }
+
+  // 2. Next dealer — advance pointer through current active players only
+  dealerIndex=(dealerIndex+1)%players.length;
+  if(players.length>0){
+    announcements.push(players[dealerIndex]+' to deal.');
+  }
+
+  if(announcements.length>0) speakSequence(announcements,400);
 }
 
 function cancelEntry(){
@@ -969,8 +1039,8 @@ function renderHistory(){
           histComboMap[label].holders.push(p);
         });
       }
-      if(pd.pap>0) histComboMap['pap_'+p]={label:'Paplu ×'+pd.pap,holders:[p],pts:ptScore(pd.pap),net:null};
-      if(pd.tap>0) histComboMap['tap_'+p]={label:'Taplu ×'+pd.tap,holders:[p],pts:ptScore(pd.tap),net:null};
+      if(pd.pap>0) histComboMap['pap_'+p]={label:'Pupploo ×'+pd.pap,holders:[p],pts:ptScore(pd.pap),net:null};
+      if(pd.tap>0) histComboMap['tap_'+p]={label:'Tupploo ×'+pd.tap,holders:[p],pts:ptScore(pd.tap),net:null};
       histComboMap['__net_'+p]={label:p,holders:[p],pts:cd.raw,net:g.sideScores[p],isNet:true};
     });
     const comboEntries=Object.entries(histComboMap).filter(([k])=>!k.startsWith('__net_'));
@@ -1101,9 +1171,14 @@ function renderManageSheet(){
 }
 function removePlayer(name){
   if(players.length<=2){alert('A session needs at least 2 active players.');return;}
+  const removedIndex=players.indexOf(name);
   players=players.filter(p=>p!==name);
-  streaks[name]=0; // reset streak on leaving
+  streaks[name]=0;
   formerPlayers.push(name);
+  // If removed player was at or before current dealerIndex, shift pointer back
+  if(removedIndex<=dealerIndex) dealerIndex=Math.max(0,dealerIndex-1);
+  // Clamp to valid range
+  if(dealerIndex>=players.length) dealerIndex=players.length-1;
   renderManageSheet();
 }
 function rejoinPlayer(name){
