@@ -286,7 +286,7 @@
 
 <!-- MAIN -->
 <div class="screen" id="screen-main">
-  <div class="top-bar"><h1>&#9824; Kheechnewale</h1><div style="display:flex;gap:8px;"><button class="mute-btn active" id="mute-btn" onclick="toggleVoice()" title="Toggle voice">&#128266;</button><button class="vcog-btn" onclick="openVS()" title="Voice settings">&#9881;</button><button class="mgmt-btn" onclick="openManage()" title="Add or remove players">&#128101;</button><button onclick="resetAll()">New session</button></div></div>
+  <div class="top-bar"><h1>&#9824; Kheechnewale</h1><div style="display:flex;gap:8px;"><button class="mute-btn active" id="mute-btn" onclick="toggleVoice()" title="Toggle voice">&#128266;</button><button class="vcog-btn" onclick="openVS()" title="Voice settings">&#9881;</button><button class="mgmt-btn" onclick="openManage()" title="Add or remove players">&#128101;</button><button onclick="showDaySummary()" style="background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.4);color:var(--gold);border-radius:8px;padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;white-space:nowrap;">&#9733; Final Settlement</button><button onclick="resetAll()">New session</button></div></div>
   <div style="padding:12px 16px 0;flex-shrink:0;">
     <div class="game-badge" id="main-badge">Game 1</div>
   </div>
@@ -1202,10 +1202,220 @@ function addPlayer(){
   renderManageSheet();
 }
 
+function saveSessionToday(){
+  // Save current session totals to localStorage under today's date
+  const allPlayers=[...players,...formerPlayers];
+  if(!allPlayers.length)return;
+  const key='kw_day_'+sessionDate;
+  let dayData=[];
+  try{const raw=localStorage.getItem(key);if(raw)dayData=JSON.parse(raw);}catch(e){}
+  const sessionTotals={};
+  allPlayers.forEach(p=>{
+    sessionTotals[p]=(gpTotals[p]||0)+(sideTotals[p]||0);
+  });
+  dayData.push({sessionTotals,savedAt:new Date().toISOString()});
+  localStorage.setItem(key,JSON.stringify(dayData));
+}
+
+function showDaySummary(){
+  // Save current session first so it's included
+  saveSessionToday();
+  const key='kw_day_'+sessionDate;
+  let dayData=[];
+  try{const raw=localStorage.getItem(key);if(raw)dayData=JSON.parse(raw);}catch(e){}
+  if(!dayData.length){
+    alert('No session data found for today.');return;
+  }
+
+  // Combine all sessions
+  const combined={};
+  dayData.forEach(session=>{
+    Object.entries(session.sessionTotals).forEach(([p,pts])=>{
+      combined[p]=(combined[p]||0)+pts;
+    });
+  });
+
+  // CAD amounts
+  const amounts={};
+  Object.keys(combined).forEach(p=>{
+    amounts[p]=Math.round((combined[p]/4)*100)/100;
+  });
+
+  // Who pays whom
+  const creditors=[],debtors=[];
+  Object.keys(combined).forEach(p=>{
+    if(amounts[p]>0)creditors.push({name:p,amt:amounts[p]});
+    else if(amounts[p]<0)debtors.push({name:p,amt:-amounts[p]});
+  });
+  creditors.sort((a,b)=>b.amt-a.amt);
+  debtors.sort((a,b)=>b.amt-a.amt);
+  const transactions=[];
+  const c=creditors.map(x=>({...x}));
+  const d=debtors.map(x=>({...x}));
+  let ci=0,di=0;
+  while(ci<c.length&&di<d.length){
+    const pay=Math.min(c[ci].amt,d[di].amt);
+    transactions.push({from:d[di].name,to:c[ci].name,amt:Math.round(pay*100)/100});
+    c[ci].amt-=pay;d[di].amt-=pay;
+    if(c[ci].amt<0.01)ci++;
+    if(d[di].amt<0.01)di++;
+  }
+
+  const sortedPlayers=Object.keys(combined).sort((a,b)=>amounts[b]-amounts[a]);
+  let html=`
+    <div style="padding:20px 16px 8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <h2 style="font-family:'Playfair Display',serif;font-size:22px;">&#9733; Final Settlement</h2>
+        <button onclick="closeDaySummary()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:0;">&times;</button>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:6px;">${sessionDate}</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:20px;">${dayData.length} session${dayData.length>1?'s':''} · 1 point = $0.25 CAD</p>
+
+      <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">Combined Standings</div>
+        ${sortedPlayers.map(p=>{
+          const pts=combined[p];
+          const cad=amounts[p];
+          const col=cad>0?'var(--success)':cad<0?'var(--accent)':'var(--muted)';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <span style="font-size:15px;">${p}</span>
+            <div style="text-align:right;">
+              <div style="font-size:13px;color:var(--muted);">${pts>0?'+'+pts:pts} pts</div>
+              <div style="font-size:16px;font-weight:600;color:${col};">${cad>=0?'+':''}$${Math.abs(cad).toFixed(2)} CAD</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      ${transactions.length>0?`
+      <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:24px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">Who Pays Whom</div>
+        ${transactions.map((t,i)=>`
+          <div id="day-txn-${i}" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <span style="font-size:14px;"><strong>${t.from}</strong> → <strong>${t.to}</strong></span>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:16px;font-weight:600;color:var(--gold);">$${t.amt.toFixed(2)}</span>
+              <button onclick="markDayPaid(${i})" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;">✓ Paid</button>
+            </div>
+          </div>`).join('')}
+      </div>`:'<div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:24px;color:var(--muted);font-size:14px;text-align:center;">All square — no payments needed!</div>'}
+
+      <button onclick="closeDaySummary()" style="display:block;width:100%;padding:14px;background:var(--surface);color:var(--text);border:1px solid rgba(255,255,255,0.15);border-radius:12px;font-size:16px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;margin-bottom:12px;">Close</button>
+    </div>`;
+
+  document.getElementById('day-summary-content').innerHTML=html;
+  document.getElementById('day-summary-overlay').style.display='flex';
+}
+
+function closeDaySummary(){
+  document.getElementById('day-summary-overlay').style.display='none';
+}
+
+function markDayPaid(i){
+  const el=document.getElementById('day-txn-'+i);
+  if(el){
+    el.style.opacity='0.35';
+    el.style.textDecoration='line-through';
+    el.querySelector('button').disabled=true;
+    el.querySelector('button').textContent='Paid';
+  }
+}
+
 function resetAll(){
-  if(!confirm('Start a new session? All scores will be reset.'))return;
+  if(!confirm('End this session? Settlement will be shown before resetting.'))return;
+  saveSessionToday();
+  showSettlement();
+}
+
+function showSettlement(){
+  const allPlayers=[...players,...formerPlayers];
+  const RATE=0.25; // each point = $0.25 CAD
+
+  // Build CAD amounts
+  const amounts={};
+  allPlayers.forEach(p=>{
+    const total=(gpTotals[p]||0)+(sideTotals[p]||0);
+    amounts[p]=Math.round((total/4)*100)/100; // divide by 4, keep 2 decimals
+  });
+
+  // Build who-pays-whom (minimum transactions)
+  const creditors=[],debtors=[];
+  allPlayers.forEach(p=>{
+    if(amounts[p]>0)creditors.push({name:p,amt:amounts[p]});
+    else if(amounts[p]<0)debtors.push({name:p,amt:-amounts[p]});
+  });
+  creditors.sort((a,b)=>b.amt-a.amt);
+  debtors.sort((a,b)=>b.amt-a.amt);
+
+  const transactions=[];
+  let ci=0,di=0;
+  const c=[...creditors.map(x=>({...x}))];
+  const d=[...debtors.map(x=>({...x}))];
+  while(ci<c.length&&di<d.length){
+    const pay=Math.min(c[ci].amt,d[di].amt);
+    transactions.push({from:d[di].name,to:c[ci].name,amt:Math.round(pay*100)/100});
+    c[ci].amt-=pay;d[di].amt-=pay;
+    if(c[ci].amt<0.01)ci++;
+    if(d[di].amt<0.01)di++;
+  }
+
+  // Render settlement screen
+  let html=`
+    <div style="padding:20px 16px 8px;">
+      <h2 style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:4px;">&#9824; Session Settlement</h2>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:20px;">1 point = $0.25 CAD</p>
+
+      <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">Final Standings</div>
+        ${allPlayers.slice().sort((a,b)=>amounts[b]-amounts[a]).map(p=>{
+          const pts=(gpTotals[p]||0)+(sideTotals[p]||0);
+          const cad=amounts[p];
+          const col=cad>0?'var(--success)':cad<0?'var(--accent)':'var(--muted)';
+          const former=formerPlayers.includes(p);
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <span style="font-size:15px;${former?'color:var(--muted);':''}">${p}${former?' <span style="font-size:10px;">(left)</span>':''}</span>
+            <div style="text-align:right;">
+              <div style="font-size:13px;color:var(--muted);">${pts>0?'+'+pts:pts} pts</div>
+              <div style="font-size:16px;font-weight:600;color:${col};">${cad>=0?'+':''}$${Math.abs(cad).toFixed(2)} CAD</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      ${transactions.length>0?`
+      <div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px;">Who Pays Whom</div>
+        ${transactions.map((t,i)=>`
+          <div id="txn-${i}" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <span style="font-size:14px;"><strong>${t.from}</strong> → <strong>${t.to}</strong></span>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:16px;font-weight:600;color:var(--gold);">$${t.amt.toFixed(2)}</span>
+              <button onclick="markPaid(${i})" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;">✓ Paid</button>
+            </div>
+          </div>`).join('')}
+      </div>`:'<div style="background:var(--surface);border-radius:12px;padding:14px;margin-bottom:16px;color:var(--muted);font-size:14px;text-align:center;">All square — no payments needed!</div>'}
+
+      <button onclick="confirmNewSession()" style="display:block;width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:16px;font-family:\'DM Sans\',sans-serif;font-weight:600;cursor:pointer;margin-bottom:12px;">Start New Session</button>
+    </div>`;
+
+  document.getElementById('settlement-content').innerHTML=html;
+  document.getElementById('settlement-overlay').style.display='flex';
+}
+
+function markPaid(i){
+  const el=document.getElementById('txn-'+i);
+  if(el){
+    el.style.opacity='0.35';
+    el.style.textDecoration='line-through';
+    el.querySelector('button').disabled=true;
+    el.querySelector('button').textContent='Paid';
+  }
+}
+
+function confirmNewSession(){
+  document.getElementById('settlement-overlay').style.display='none';
   players=[];formerPlayers=[];gpTotals={};sideTotals={};streaks={};streakLevels={};
-  gameHistory=[];gameCount=1;selectedWinner=null;
+  gameHistory=[];gameCount=1;selectedWinner=null;dealerIndex=0;
   setupCount=6;initSetupGrid();
   showScreen('screen-setup');
 }
@@ -1254,6 +1464,16 @@ function resetAll(){
   <div style="text-align:center;margin-top:14px;">
     <button onclick="resetVS()" style="background:none;border:none;color:var(--muted);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;text-decoration:underline;">Reset to defaults</button>
   </div>
+</div>
+
+<!-- Day Summary overlay -->
+<div id="day-summary-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:300;overflow-y:auto;flex-direction:column;">
+  <div id="day-summary-content"></div>
+</div>
+
+<!-- Settlement overlay -->
+<div id="settlement-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:300;overflow-y:auto;flex-direction:column;">
+  <div id="settlement-content"></div>
 </div>
 
 <!-- PWA: Install banner -->
