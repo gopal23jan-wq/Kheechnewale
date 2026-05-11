@@ -216,11 +216,11 @@
       <p class="note">Zero-sum: earn your own combo pts, but owe others theirs. Positives and negatives balance out.</p>
     </div>
     <div class="sec">
-      <div class="sec-title">Pupploo / Tupploo (Side)</div>
-      <div class="ref-row"><span>1 Pupploo or Tupploo</span><span>1 pt</span></div>
+      <div class="sec-title">Pup-loo / Tup-loo (Side)</div>
+      <div class="ref-row"><span>1 Pup-loo or Tup-loo</span><span>1 pt</span></div>
       <div class="ref-row"><span>2 of same</span><span>3 pts (1+1+1 bonus)</span></div>
-      <div class="ref-row"><span>3 Puploos/Tupploos</span><span>5 pts (no Tanala unless shown before pick)</span></div>
-      <p class="note">Pupploo = one above joker · Tupploo = one below joker (same suit).</p>
+      <div class="ref-row"><span>3 Pup-loos/Tup-loos</span><span>5 pts (no Tanala unless shown before pick)</span></div>
+      <p class="note">Pup-loo = one above joker · Tup-loo = one below joker (same suit).</p>
     </div>
     <div class="sec">
       <div class="sec-title">Win streak bonus (Side)</div>
@@ -342,7 +342,7 @@ const COMBOS=[
   {id:'dup4',      label:'4 Duplicates', pts:3},
 ];
 
-// Pupploo/Tupploo: 1→1, 2→3, 3→5
+// Pup-loo/Tup-loo: 1→1, 2→3, 3→5
 function ptScore(n){if(n===0)return 0;if(n===1)return 1;if(n===2)return 3;return 5;}
 
 // Combo scoring using individual point values.
@@ -368,7 +368,7 @@ function streakBonusAt(n){return n===3?2:n===5?3:n===7?5:0;}
 let voiceOn=true;
 let vsRate=parseFloat(localStorage.getItem('kw_vsRate'))||0.64;
 let vsPitch=parseFloat(localStorage.getItem('kw_vsPitch'))||0.9;
-let vsVoiceName=localStorage.getItem('kw_vsVoiceName')||'Aman';
+let vsVoiceName=localStorage.getItem('kw_vsVoiceName')||'Samantha';
 let vsVoice=null;
 
 function toggleVoice(){
@@ -496,19 +496,19 @@ function testVS(){
   speak('This is a test. Gopal declared. Raj showed a Four-Carder. Priya showed Tanala.');
 }
 function resetVS(){
-  vsRate=0.64;vsPitch=0.9;vsVoiceName='Aman';vsVoice=null;
+  vsRate=0.64;vsPitch=0.9;vsVoiceName='Samantha';vsVoice=null;
   document.getElementById('vs-rate').value=0.64;
   document.getElementById('vs-rate-val').textContent='0.64';
   document.getElementById('vs-pitch').value=0.9;
   document.getElementById('vs-pitch-val').textContent='0.9';
   const voices=window.speechSynthesis.getVoices();
   const sel=document.getElementById('vs-voice');
-  const idx=voices.findIndex(v=>v.name==='Aman');
+  const idx=voices.findIndex(v=>v.name==='Samantha');
   if(idx>=0){sel.selectedIndex=idx;vsVoice=voices[idx];}
   // Save defaults to localStorage so they persist on next load
   localStorage.setItem('kw_vsRate',0.64);
   localStorage.setItem('kw_vsPitch',0.9);
-  localStorage.setItem('kw_vsVoiceName','Aman');
+  localStorage.setItem('kw_vsVoiceName','Samantha');
 }
 if(window.speechSynthesis){
   window.speechSynthesis.onvoiceschanged=initVoice;
@@ -532,10 +532,10 @@ function sideSpeakText(p){
     if(document.getElementById('combo_'+p+'_'+c.id)?.checked)parts.push(c.label);
   });
   const pap=getPapVal(p),tap=getTapVal(p);
-  if(pap===1)parts.push('Pupploo');
-  else if(pap>1)parts.push((numWords[pap]||pap)+' Pupploos');
-  if(tap===1)parts.push('Tupploo');
-  else if(tap>1)parts.push((numWords[tap]||tap)+' Tupploos');
+  if(pap===1)parts.push('Pup-loo');
+  else if(pap>1)parts.push((numWords[pap]||pap)+' Pup-loos');
+  if(tap===1)parts.push('Tup-loo');
+  else if(tap>1)parts.push((numWords[tap]||tap)+' Tup-loos');
   return parts;
 }
 
@@ -603,6 +603,8 @@ function buildReview(){
   rc.innerHTML=out;
 }
 
+let speechWarmedUp=false;
+
 // ── Speak: declarer + sides only (no points) ─────────────
 function speakReview(){
   const declarer=inferDeclarer();
@@ -624,7 +626,10 @@ function speakReview(){
   } else {
     phrases.push('No sides this hand.');
   }
-  speakSequence(phrases,350);
+  // Give extra warm-up time on first speech of the session
+  const delay=speechWarmedUp?350:900;
+  speechWarmedUp=true;
+  speakSequence(phrases,delay);
 }
 
 // Checkbox helper
@@ -731,9 +736,9 @@ function renderBlocks(){
         <div class="divider"></div>`;
 
     const ptSection=`
-      <div class="sub-title" style="margin-top:4px;">Pupploo &amp; Tupploo</div>
+      <div class="sub-title" style="margin-top:4px;">Pup-loo &amp; Tup-loo</div>
       <div class="pt-row">
-        <div><div class="pt-label">Pupploo</div><div class="pt-sub">1 above joker (same suit)</div></div>
+        <div><div class="pt-label">Pup-loo</div><div class="pt-sub">1 above joker (same suit)</div></div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
           <div class="stepper">
             <button type="button" onclick="stepPT('pap_${p}',-1)">−</button>
@@ -744,7 +749,7 @@ function renderBlocks(){
         </div>
       </div>
       <div class="pt-row">
-        <div><div class="pt-label">Tupploo</div><div class="pt-sub">1 below joker (same suit)</div></div>
+        <div><div class="pt-label">Tup-loo</div><div class="pt-sub">1 below joker (same suit)</div></div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
           <div class="stepper">
             <button type="button" onclick="stepPT('tap_${p}',-1)">−</button>
@@ -837,12 +842,12 @@ function updatePot(){
         comboMap[c.id].holders.push(p);
       }
     });
-    // Pupploo
+    // Pup-loo
     const papV=getPapVal(p);
-    if(papV>0){comboMap['paplu_'+p]={label:'Pupploo ×'+papV,holders:[p],pts:ptScore(papV)};}
-    // Tupploo
+    if(papV>0){comboMap['paplu_'+p]={label:'Pup-loo ×'+papV,holders:[p],pts:ptScore(papV)};}
+    // Tup-loo
     const tapV=getTapVal(p);
-    if(tapV>0){comboMap['taplu_'+p]={label:'Tupploo ×'+tapV,holders:[p],pts:ptScore(tapV)};}
+    if(tapV>0){comboMap['taplu_'+p]={label:'Tup-loo ×'+tapV,holders:[p],pts:ptScore(tapV)};}
   });
   // Streak bonus preview (shown only when declarer is unambiguous)
   let streakRow='';
@@ -1052,8 +1057,8 @@ function renderHistory(){
           histComboMap[label].holders.push(p);
         });
       }
-      if(pd.pap>0) histComboMap['pap_'+p]={label:'Pupploo ×'+pd.pap,holders:[p],pts:ptScore(pd.pap),net:null};
-      if(pd.tap>0) histComboMap['tap_'+p]={label:'Tupploo ×'+pd.tap,holders:[p],pts:ptScore(pd.tap),net:null};
+      if(pd.pap>0) histComboMap['pap_'+p]={label:'Pup-loo ×'+pd.pap,holders:[p],pts:ptScore(pd.pap),net:null};
+      if(pd.tap>0) histComboMap['tap_'+p]={label:'Tup-loo ×'+pd.tap,holders:[p],pts:ptScore(pd.tap),net:null};
       histComboMap['__net_'+p]={label:p,holders:[p],pts:cd.raw,net:g.sideScores[p],isNet:true};
     });
     const comboEntries=Object.entries(histComboMap).filter(([k])=>!k.startsWith('__net_'));
