@@ -381,8 +381,23 @@ function toggleVoice(){
   if(!voiceOn&&window.speechSynthesis)window.speechSynthesis.cancel();
 }
 
+// Phonetic substitutions for names that TTS mispronounces
+// Display name → phonetic spelling for voice only
+const PHONETIC_NAMES={
+  'Gopal':'Go Paul',
+  'gopal':'Go Paul',
+};
+function phoneticText(text){
+  let out=text;
+  Object.entries(PHONETIC_NAMES).forEach(([name,phonetic])=>{
+    out=out.replace(new RegExp('\\b'+name+'\\b','g'),phonetic);
+  });
+  return out;
+}
+
 function speak(text){
   if(!voiceOn||!window.speechSynthesis)return;
+  text=phoneticText(text);
   window.speechSynthesis.cancel();
   setTimeout(()=>{
     const u=new SpeechSynthesisUtterance(text);
@@ -420,7 +435,7 @@ function speakSequence(phrases,delay){
     let index=0;
     function next(){
       if(index>=phrases.length)return;
-      const text=phrases[index++];
+      const text=phoneticText(phrases[index++]);
       const u=new SpeechSynthesisUtterance(text);
       u.rate=vsRate;u.pitch=vsPitch;
       if(voice)u.voice=voice;
@@ -493,7 +508,7 @@ function initVoice(){
 }
 function testVS(){
   onVS();
-  speak('This is a test. Gopal declared. Raj showed a Four-Carder. Priya showed Tanala.');
+  speak('This is a test. Go Paul declared. Raj showed a Four-Carder. Priya showed Tanala.');
 }
 function resetVS(){
   vsRate=0.64;vsPitch=0.9;vsVoiceName='Samantha';vsVoice=null;
