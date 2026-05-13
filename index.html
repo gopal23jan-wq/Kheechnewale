@@ -1000,7 +1000,8 @@ function recordGame(){
 
   // 1. Streak bonus status
   if(bonus>0){
-    announcements.push(selectedWinner+' claimed the bonus!');
+    const bonusName=sw===3?'first':sw===5?'second':'third';
+    announcements.push(selectedWinner+' wins the '+bonusName+' bonus!');
   }
 
   // 2. Next dealer — advance pointer through current active players only
